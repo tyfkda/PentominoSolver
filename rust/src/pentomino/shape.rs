@@ -5,9 +5,18 @@ pub struct Shape {
     pub bitpat: BitPattern,
     pub w: usize,
     pub h: usize,
+    pub ofsy: usize,
 }
 
 impl Shape {
+    pub fn is_cell(&self, x: usize, y: usize) -> bool {
+        (self.bitpat & (1 << (y * self.w + x))) != 0
+    }
+
+    pub fn line_bits(&self, y: usize) -> BitPattern {
+        (self.bitpat >> (y * self.w)) & ((1 << self.w) - 1)
+    }
+
     pub fn create_shapes() -> Vec<(char, Vec<Self>)> {
         // F, I, L, N, P, T, U, V, W, X, Y, Z
         let original_shapes = [
@@ -146,7 +155,7 @@ impl Shape {
                 }
             }
         }
-        Shape { bitpat, w, h }
+        Shape { bitpat, w, h, ofsy: 0 }
     }
 
     fn rot_flip(base_shape: &Shape, flip: bool, rot: usize) -> Self {
@@ -157,6 +166,7 @@ impl Shape {
         (0..rot).for_each(|_| {
             shape = Self::rot90(&shape);
         });
+        shape.find_ofsy();
         shape
     }
 
@@ -167,7 +177,7 @@ impl Shape {
             let line = (shape.bitpat >> ((shape.h - y - 1) * shape.w)) & line_mask;
             bitpat |= line << (y * shape.w);
         }
-        Shape { bitpat, w: shape.w, h: shape.h }
+        Shape { bitpat, w: shape.w, h: shape.h, ofsy: 0 }
     }
 
     fn flip_diag(shape: &Shape) -> Self {
@@ -178,11 +188,18 @@ impl Shape {
                 bitpat |= b << (x * shape.h + y);
             }
         }
-        Shape { bitpat, w: shape.h, h: shape.w }
+        Shape { bitpat, w: shape.h, h: shape.w, ofsy: 0 }
     }
 
     fn rot90(bshape: &Shape) -> Shape {
         Self::flip_diag(&Self::flip_y(bshape))
+    }
+
+    fn find_ofsy(&mut self) {
+        self.ofsy = (0..self.h)
+            .into_iter()
+            .position(|y| self.is_cell(0, y))
+            .unwrap()
     }
 }
 

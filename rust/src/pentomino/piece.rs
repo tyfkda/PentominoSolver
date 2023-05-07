@@ -18,3 +18,10 @@ impl Piece {
             .collect()
     }
 }
+
+#[derive(Clone, Debug)]
+pub struct PieceArrange {
+    pub x: usize,
+    pub y: usize,
+    pub shape: usize,
+}
