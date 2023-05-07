@@ -16,10 +16,10 @@ pub struct NaiveSolver {
 }
 
 impl NaiveSolver {
-    pub fn new(w: usize, h: usize, pieces: Vec<Piece>, found_callback: Box<dyn Fn(&[Piece], &[&PieceArrange])>) -> Self {
+    pub fn new(w: usize, h: usize, pieces: Vec<Piece>, bitboard: BitBoard, found_callback: Box<dyn Fn(&[Piece], &[&PieceArrange])>) -> Self {
         let n = pieces.len();
         Self {
-            bitboard: 0,
+            bitboard,
             w,
             h,
             pieces,
@@ -87,6 +87,18 @@ impl NaiveSolver {
         self.solution_hashes.insert(calc_hash(&mirrored));
         mirror_y(&mut mirrored, self.w, self.h);
         self.solution_hashes.insert(calc_hash(&mirrored));
+
+        if self.w == self.h {
+            // Register rotated.
+            mirror_diag(&mut mirrored, self.w);
+            self.solution_hashes.insert(calc_hash(&mirrored));
+            mirror_y(&mut mirrored, self.w, self.h);
+            self.solution_hashes.insert(calc_hash(&mirrored));
+            mirror_x(&mut mirrored, self.w, self.h);
+            self.solution_hashes.insert(calc_hash(&mirrored));
+            mirror_y(&mut mirrored, self.w, self.h);
+            self.solution_hashes.insert(calc_hash(&mirrored));
+        }
     }
 
     fn search_next_pos(&self, mut x: usize, mut y: usize) -> Option<(usize, usize)> {
@@ -151,6 +163,17 @@ fn mirror_y(placed: &mut Vec<char>, w: usize, h: usize) {
             let t = placed[y * w + x];
             placed[y * w + x] = placed[y2 * w + x];
             placed[y2 * w + x] = t;
+        }
+    }
+}
+
+fn mirror_diag(placed: &mut Vec<char>, w: usize) {
+    assert!(placed.len() == w * w);
+    for y in 0..(w - 1) {
+        for x in (y + 1)..w {
+            let t = placed[y * w + x];
+            placed[y * w + x] = placed[x * w + y];
+            placed[x * w + y] = t;
         }
     }
 }

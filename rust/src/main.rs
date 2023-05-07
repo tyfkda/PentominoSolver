@@ -1,16 +1,53 @@
 mod pentomino;
 
-use crate::pentomino::{Piece, placed_board, PieceArrange};
+use clap::Parser;
+
+use crate::pentomino::{BitBoard, Piece, PieceArrange, placed_board};
 use crate::pentomino::solver::NaiveSolver;
 
+#[derive(Clone, Copy, Debug, clap::ValueEnum)]
+enum BoardSize { _6x10, _5x12, _4x15, _3x20, _8x8 }
+
+impl BoardSize {
+    fn hwb(&self) -> (usize, usize, BitBoard) {
+        match self {
+            BoardSize::_6x10 => (6, 10, 0),
+            BoardSize::_5x12 => (5, 12, 0),
+            BoardSize::_4x15 => (4, 15, 0),
+            BoardSize::_3x20 => (3, 20, 0),
+            BoardSize::_8x8  => (8, 8, (1 << (3 * 8 + 3)) | (1 << (3 * 8 + 4)) | (1 << (4 * 8 + 3)) | (1 << (4 * 8 + 4))),
+        }
+    }
+
+    fn parse(s: &str) -> Result<BoardSize, String> {
+        match s {
+            "6x10" | "6" => Ok(BoardSize::_6x10),
+            "5x12" | "5" => Ok(BoardSize::_5x12),
+            "4x15" | "4" => Ok(BoardSize::_4x15),
+            "3x20" | "3" => Ok(BoardSize::_3x20),
+            "8x8"  | "8" => Ok(BoardSize::_8x8),
+            _ => Err(String::from("Illegal size")),
+        }
+    }
+}
+
+#[derive(Parser, Debug)]
+#[command(about, long_about = None)]
+struct Args {
+    /// Board size (10x6, 12x5, 15x4, 20x3, 8x8 (default: 10x6))
+    #[arg(short, long, value_parser = BoardSize::parse)]
+    size: Option<BoardSize>,
+}
+
 fn main() {
+    let args = Args::parse();
+    let size = args.size.unwrap_or(BoardSize::_6x10);
+    let (h, w, initial_bitboard) = size.hwb();
+
     let pieces = Piece::create_pentominos();
     // for piece in &pieces {
     //     println!("{}: {:?}", piece.shapes.len(), piece);
     // }
-
-    let w = 10;
-    let h = 6;
 
     let f = move |pieces: &[Piece], arranges: &[&PieceArrange]| {
         let placed = placed_board(w, h, pieces, arranges);
@@ -20,7 +57,7 @@ fn main() {
         }
         println!("");
     };
-    let mut solver = NaiveSolver::new(w, h, pieces, Box::new(f));
+    let mut solver = NaiveSolver::new(w, h, pieces, initial_bitboard, Box::new(f));
     solver.solve();
     println!("Total: Solution={}, check={}", solver.solution_count, solver.check_count);
 }
