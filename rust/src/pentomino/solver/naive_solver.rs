@@ -1,4 +1,6 @@
-use crate::pentomino::{BitBoard, Piece, PieceArrange, Shape};
+use std::collections::HashSet;
+
+use crate::pentomino::{BitBoard, Piece, PieceArrange, Shape, placed_board};
 
 pub struct NaiveSolver {
     bitboard: BitBoard,
@@ -10,6 +12,7 @@ pub struct NaiveSolver {
     arranges: Vec<Option<PieceArrange>>,
     pub check_count: usize,
     pub solution_count: usize,
+    solution_hashes: HashSet<String>,
 }
 
 impl NaiveSolver {
@@ -24,6 +27,7 @@ impl NaiveSolver {
             arranges: vec![None; n],
             check_count: 0,
             solution_count: 0,
+            solution_hashes: HashSet::new(),
         }
     }
 
@@ -45,10 +49,20 @@ impl NaiveSolver {
                 self.arranges[ip] = Some(PieceArrange {x, y: y - ofsy, shape: is});
                 if let Some((nx, ny)) = self.search_next_pos(x, y) {
                     self.solve_recur(nx, ny);
-                } else if self.is_unique_solution() {
-                    self.add_solution();
-                    let arranges = self.arranges.iter().map(|e| e.as_ref().unwrap()).collect::<Vec<_>>();
-                    (self.found_callback)(&self.pieces, &arranges);
+                } else {
+                    let (placed, uniq) = {
+                        let arranges = self.arranges.iter().map(|e| e.as_ref().unwrap()).collect::<Vec<_>>();
+                        let placed = placed_board(self.w, self.h, &self.pieces, &arranges);
+                        let mut uniq = false;
+                        if self.is_unique_solution(&placed) {
+                            uniq = true;
+                            (self.found_callback)(&self.pieces, &arranges);
+                        }
+                        (placed, uniq)
+                    };
+                    if uniq {
+                        self.add_solution(&placed);
+                    }
                 }
                 self.bitboard = put_shape(self.bitboard, self.w, self.h, &self.pieces[ip].shapes[is], x, y - ofsy, false);
             }
@@ -57,12 +71,22 @@ impl NaiveSolver {
         }
     }
 
-    fn is_unique_solution(&self) -> bool {
-        true
+    fn is_unique_solution(&self, placed: &Vec<char>) -> bool {
+        let hash = calc_hash(placed);
+        !self.solution_hashes.contains(&hash)
     }
 
-    fn add_solution(&mut self) {
+    fn add_solution(&mut self, placed: &Vec<char>) {
         self.solution_count += 1;
+
+        // Register mirrored.
+        let mut mirrored = placed.clone();
+        mirror_y(&mut mirrored, self.w, self.h);
+        self.solution_hashes.insert(calc_hash(&mirrored));
+        mirror_x(&mut mirrored, self.w, self.h);
+        self.solution_hashes.insert(calc_hash(&mirrored));
+        mirror_y(&mut mirrored, self.w, self.h);
+        self.solution_hashes.insert(calc_hash(&mirrored));
     }
 
     fn search_next_pos(&self, mut x: usize, mut y: usize) -> Option<(usize, usize)> {
@@ -100,4 +124,33 @@ fn put_shape(mut board: BitBoard, w: usize, _h: usize, shape: &Shape, x: usize, 
         }
     }
     board
+}
+
+fn calc_hash(placed: &Vec<char>) -> String {
+    // TODO: Use hash function.
+    placed.iter().collect::<String>()
+}
+
+fn mirror_x(placed: &mut Vec<char>, w: usize, h: usize) {
+    let m = w >> 1;
+    for y in 0..h {
+        for x in 0..m {
+            let x2 = w - x - 1;
+            let t = placed[y * w + x];
+            placed[y * w + x] = placed[y * w + x2];
+            placed[y * w + x2] = t;
+        }
+    }
+}
+
+fn mirror_y(placed: &mut Vec<char>, w: usize, h: usize) {
+    let m = h >> 1;
+    for x in 0..w {
+        for y in 0..m {
+            let y2 = h - y - 1;
+            let t = placed[y * w + x];
+            placed[y * w + x] = placed[y2 * w + x];
+            placed[y2 * w + x] = t;
+        }
+    }
 }
