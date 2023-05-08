@@ -3,7 +3,7 @@ mod pentomino;
 use clap::Parser;
 
 use crate::pentomino::{BitBoard, Piece, PieceArrange, placed_board};
-use crate::pentomino::solver::NaiveSolver;
+use crate::pentomino::solver::{DlxSolver, NaiveSolver, Solver};
 
 #[derive(Clone, Copy, Debug, clap::ValueEnum)]
 enum BoardSize { _6x10, _5x12, _4x15, _3x20, _8x8 }
@@ -37,6 +37,24 @@ struct Args {
     /// Board size (10x6, 12x5, 15x4, 20x3, 8x8 (default: 10x6))
     #[arg(short, long, value_parser = BoardSize::parse)]
     size: Option<BoardSize>,
+
+    #[arg(long)]
+    dlx: bool,
+}
+
+fn solve(solver: &mut impl Solver, w: usize, h: usize) {
+    let f = move |pieces: &[Piece], arranges: &[&PieceArrange]| {
+        let placed = placed_board(w, h, &pieces, &arranges);
+        for y in 0..h {
+            let s = placed[y * w .. y * w + w].iter().collect::<String>();
+            println!("{:}", s);
+        }
+        println!("");
+    };
+    solver.set_callback(Box::new(f));
+
+    let (solution_count, check_count) = solver.solve();
+    println!("Total: Solution={}, check={}", solution_count, check_count);
 }
 
 fn main() {
@@ -49,15 +67,11 @@ fn main() {
     //     println!("{}: {:?}", piece.shapes.len(), piece);
     // }
 
-    let f = move |pieces: &[Piece], arranges: &[&PieceArrange]| {
-        let placed = placed_board(w, h, pieces, arranges);
-        for y in 0..h {
-            let s = placed[y * w .. y * w + w].iter().collect::<String>();
-            println!("{:}", s);
-        }
-        println!("");
-    };
-    let mut solver = NaiveSolver::new(w, h, pieces, initial_bitboard, Box::new(f));
-    solver.solve();
-    println!("Total: Solution={}, check={}", solver.solution_count, solver.check_count);
+    if args.dlx {
+        let mut solver: DlxSolver = DlxSolver::new(w, h, pieces, initial_bitboard);
+        solve(&mut solver, w, h);
+    } else {
+        let mut solver = NaiveSolver::new(w, h, pieces, initial_bitboard);
+        solve(&mut solver, w, h);
+    }
 }

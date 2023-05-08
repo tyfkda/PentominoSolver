@@ -2,6 +2,8 @@ use std::collections::HashSet;
 
 use crate::pentomino::{BitBoard, Piece, PieceArrange, Shape, placed_board};
 
+use super::{Solver, calc_hash, mirror_diag, mirror_x, mirror_y};
+
 pub struct NaiveSolver {
     bitboard: BitBoard,
     w: usize,
@@ -15,23 +17,12 @@ pub struct NaiveSolver {
     solution_hashes: HashSet<String>,
 }
 
-impl NaiveSolver {
-    pub fn new(w: usize, h: usize, pieces: Vec<Piece>, bitboard: BitBoard, found_callback: Box<dyn Fn(&[Piece], &[&PieceArrange])>) -> Self {
-        let n = pieces.len();
-        Self {
-            bitboard,
-            w,
-            h,
-            pieces,
-            found_callback,
-            arranges: vec![None; n],
-            check_count: 0,
-            solution_count: 0,
-            solution_hashes: HashSet::new(),
-        }
+impl Solver for NaiveSolver {
+    fn set_callback(&mut self, callback: Box<dyn Fn(&[Piece], &[&PieceArrange])>) {
+        self.found_callback = callback;
     }
 
-    pub fn solve(&mut self) {
+    fn solve(&mut self) -> (usize, usize) {
         self.check_count = 0;
         self.arranges.fill(None);
 
@@ -40,6 +31,25 @@ impl NaiveSolver {
             self.solve_x(ip);
         } else {
             self.solve_recur(0, 0);
+        }
+
+        (self.solution_count, self.check_count)
+    }
+}
+
+impl NaiveSolver {
+    pub fn new(w: usize, h: usize, pieces: Vec<Piece>, bitboard: BitBoard) -> Self {
+        let n = pieces.len();
+        Self {
+            bitboard,
+            w,
+            h,
+            pieces,
+            found_callback: Box::new(|_, _| {}),
+            arranges: vec![None; n],
+            check_count: 0,
+            solution_count: 0,
+            solution_hashes: HashSet::new(),
         }
     }
 
@@ -159,44 +169,4 @@ fn put_shape(mut board: BitBoard, w: usize, _h: usize, shape: &Shape, x: usize, 
         }
     }
     board
-}
-
-fn calc_hash(placed: &Vec<char>) -> String {
-    // TODO: Use hash function.
-    placed.iter().collect::<String>()
-}
-
-fn mirror_x(placed: &mut Vec<char>, w: usize, h: usize) {
-    let m = w >> 1;
-    for y in 0..h {
-        for x in 0..m {
-            let x2 = w - x - 1;
-            let t = placed[y * w + x];
-            placed[y * w + x] = placed[y * w + x2];
-            placed[y * w + x2] = t;
-        }
-    }
-}
-
-fn mirror_y(placed: &mut Vec<char>, w: usize, h: usize) {
-    let m = h >> 1;
-    for x in 0..w {
-        for y in 0..m {
-            let y2 = h - y - 1;
-            let t = placed[y * w + x];
-            placed[y * w + x] = placed[y2 * w + x];
-            placed[y2 * w + x] = t;
-        }
-    }
-}
-
-fn mirror_diag(placed: &mut Vec<char>, w: usize) {
-    assert!(placed.len() == w * w);
-    for y in 0..(w - 1) {
-        for x in (y + 1)..w {
-            let t = placed[y * w + x];
-            placed[y * w + x] = placed[x * w + y];
-            placed[x * w + y] = t;
-        }
-    }
 }

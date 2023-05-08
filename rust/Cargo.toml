@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.2.7", features = ["derive"] }
+dancing-links = { version = "0.2.0", git = "https://github.com/tyfkda/dancing-links.git", branch = "feature/fix-assert-fail" }

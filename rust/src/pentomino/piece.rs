@@ -19,7 +19,7 @@ impl Piece {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct PieceArrange {
     pub x: usize,
     pub y: usize,
