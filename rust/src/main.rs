@@ -40,6 +40,7 @@ struct Args {
     #[arg(short, long, value_parser = BoardSize::parse)]
     size: Option<BoardSize>,
 
+    /// Use Dancing Links algorithm
     #[arg(long)]
     dlx: bool,
 }
