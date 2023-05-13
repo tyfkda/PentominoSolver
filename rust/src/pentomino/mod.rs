@@ -25,3 +25,8 @@ pub fn placed_board(w: usize, h: usize, pieces: &[Piece], arranges: &[&PieceArra
     let placed = vec![' '; w * h];
     pieces.iter().zip(arranges).fold(placed, place_piece)
 }
+
+pub fn delta_swap(x: BitBoard, mask: u64, delta: usize) -> BitBoard {
+    let t = ((x >> delta) ^ x) & mask;
+    t ^ (t << delta) ^ x
+}

@@ -1,4 +1,4 @@
-use super::BitBoard;
+use super::{BitBoard, delta_swap};
 
 // Bit pattern is stored as multiple rows,
 // and its line width is same as board_w.
@@ -191,28 +191,23 @@ impl Shape {
     }
 
     fn flip_y(shape: &Shape) -> Self {
-        let mut bitpat = 0 as BitBoard;
+        let mut bitpat = shape.bitpat;
         let line_mask = (1 << shape.w) - 1;
-        for y in 0..shape.h {
-            let line = (shape.bitpat >> ((shape.h - y - 1) * shape.w)) & line_mask;
-            bitpat |= line << (y * shape.w);
+        for y in 0..shape.h / 2 {
+            bitpat = delta_swap(bitpat, line_mask << (y * shape.w), (shape.h - 1 - 2 * y) * shape.w);
         }
         Shape { bitpat, w: shape.w, h: shape.h, ofsy: 0 }
     }
 
-    fn flip_diag(shape: &Shape) -> Self {
+    fn rot90(shape: &Shape) -> Self {
         let mut bitpat = 0 as BitBoard;
         for y in 0..shape.w {
             for x in 0..shape.h {
-                let b = (shape.bitpat >> (x * shape.w + y)) & 1;
+                let b = (shape.bitpat >> ((shape.h - x - 1) * shape.w + y)) & 1;
                 bitpat |= b << (y * shape.h + x);
             }
         }
         Shape { bitpat, w: shape.h, h: shape.w, ofsy: 0 }
-    }
-
-    fn rot90(shape: &Shape) -> Self {
-        Self::flip_diag(&Self::flip_y(shape))
     }
 
     fn find_ofsy(bitpat: BitBoard, w: usize, h: usize) -> usize {
