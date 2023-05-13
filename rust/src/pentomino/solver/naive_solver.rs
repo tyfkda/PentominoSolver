@@ -152,21 +152,16 @@ fn can_put_shape(board: BitBoard, w: usize, h: usize, shape: &Shape, x: usize, y
     if x > w - shape.w { return None; }
     let ofsy = shape.ofsy;
     if y < ofsy || y > h + ofsy - shape.h { return None; }
-    for i in 0..shape.h {
-        let line = shape.line_bits(i);
-        if (board & (line << ((y + i - ofsy) * w + x))) != 0 { return None }
-    }
+    if (board & (shape.bitpat << ((y - ofsy) * w + x))) != 0 { return None; }
     Some(ofsy)
 }
 
 fn put_shape(mut board: BitBoard, w: usize, _h: usize, shape: &Shape, x: usize, y: usize, set: bool) -> BitBoard {
-    for i in 0..shape.h {
-        let line = shape.line_bits(i) << ((y + i) * w + x);
-        if set {
-            board |= line;
-        } else {
-            board &= !line;
-        }
+    let bitpat = shape.bitpat << (y * w + x);
+    if set {
+        board |= bitpat;
+    } else {
+        board &= !bitpat;
     }
     board
 }

@@ -99,7 +99,7 @@ impl ExactCover for DlxSolver {
     type Constraint = Constraint;
 
     fn satisfies(&self, poss: &Self::Possibility, cons: &Self::Constraint) -> bool {
-        poss.satisfies(cons, &self.pieces)
+        poss.satisfies(cons, &self.pieces, self.w)
     }
 
     fn is_optional(&self, _cons: &Self::Constraint) -> bool {
@@ -134,12 +134,8 @@ impl Possibility {
                     .filter_map(move |i| {
                         let x = i % ww;
                         let y = i / ww;
-                        if bitboard != 0 {
-                            for yy in 0..shape.h {
-                                if (bitboard & (shape.line_bits(yy) << ((y + yy) * w + x))) != 0 {
-                                    return None;
-                                }
-                            }
+                        if (bitboard & (shape.bitpat << (y * w + x))) != 0 {
+                            return None;
                         }
                         Some(Possibility {piece: ip, shape: is, x, y})
                     })
@@ -147,14 +143,14 @@ impl Possibility {
     }
 
     /// Return true if this `Possibility` satisfies the given `Constraint`.
-    pub fn satisfies(&self, constraint: &Constraint, pieces: &Vec<Piece>) -> bool {
+    pub fn satisfies(&self, constraint: &Constraint, pieces: &Vec<Piece>, board_w: usize) -> bool {
         match constraint {
             &Constraint::Cell(x, y) => {
                 if x < self.x || y < self.y { return false; }
                 let shape = &pieces[self.piece].shapes[self.shape];
                 let xx = x - self.x;
                 let yy = y - self.y;
-                xx < shape.w && yy < shape.h && shape.is_cell(xx, yy)
+                xx < shape.w && yy < shape.h && shape.is_cell(xx, yy, board_w)
             },
             &Constraint::Piece(piece) => self.piece == piece,
         }

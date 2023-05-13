@@ -53,7 +53,7 @@ fn color_board(w: usize, h: usize, pieces: &[Piece], arranges: &[&PieceArrange])
         let mut c = piece.name;
         for i in 0..shape.h {
             for j in 0..shape.w {
-                if shape.is_cell(j, i) {
+                if shape.is_cell(j, i, w) {
                     placed[(y + i) * w + x + j] = Some((piece.name, c));
                     c = ' ';
                 }
@@ -117,7 +117,7 @@ fn main() {
     let size = args.size.unwrap_or(BoardSize::_6x10);
     let (h, w, initial_bitboard) = size.hwb();
 
-    let pieces = Piece::create_pentominos();
+    let pieces = Piece::create_pentominos(w, h);
     // for piece in &pieces {
     //     println!("{}: {:?}", piece.shapes.len(), piece);
     // }

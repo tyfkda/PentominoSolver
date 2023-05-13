@@ -14,7 +14,7 @@ pub fn placed_board(w: usize, h: usize, pieces: &[Piece], arranges: &[&PieceArra
         let shape = &piece.shapes[arrange.shape];
         for i in 0..shape.h {
             for j in 0..shape.w {
-                if shape.is_cell(j, i) {
+                if shape.is_cell(j, i, w) {
                     placed[(y + i) * w + x + j] = piece.name;
                 }
             }

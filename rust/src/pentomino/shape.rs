@@ -1,23 +1,22 @@
-type BitPattern = u64;
+use super::BitBoard;
+
+// Bit pattern is stored as multiple rows,
+// and its line width is same as board_w.
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Shape {
-    pub bitpat: BitPattern,
+    pub bitpat: BitBoard,
     pub w: usize,
     pub h: usize,
     pub ofsy: usize,
 }
 
 impl Shape {
-    pub fn is_cell(&self, x: usize, y: usize) -> bool {
-        (self.bitpat & (1 << (y * self.w + x))) != 0
+    pub fn is_cell(&self, x: usize, y: usize, board_w: usize) -> bool {
+        (self.bitpat & (1 << (y * board_w + x))) != 0
     }
 
-    pub fn line_bits(&self, y: usize) -> BitPattern {
-        (self.bitpat >> (y * self.w)) & ((1 << self.w) - 1)
-    }
-
-    pub fn create_shapes() -> Vec<(char, Vec<Self>)> {
+    pub fn create_shapes(board_w: usize, board_h: usize) -> Vec<(char, Vec<Self>)> {
         // F, I, L, N, P, T, U, V, W, X, Y, Z
         let original_shapes = [
             OriginalShape {
@@ -124,17 +123,27 @@ impl Shape {
 
         original_shapes
             .iter()
-            .map(|pat| (pat.name, Self::create(pat)))
+            .map(|pat| (pat.name, Self::create(pat, board_w, board_h)))
             .collect()
     }
 
-    fn create(oshape: &OriginalShape) -> Vec<Self> {
+    fn create(oshape: &OriginalShape, board_w: usize, board_h: usize) -> Vec<Self> {
+        // Line width of bit pattern is pattern's width,
+        // and convert to board_w using `to_board_width`.
+
         let base_shape = Self::from(&oshape.lines);
 
         // Create flipped and rotated shapes.
         let mut shapes = Vec::new();
         for i in 0..8 {
-            let modified = Self::rot_flip(&base_shape, i >= 4, i & 3);
+            let rotflipped = Self::rot_flip(&base_shape, i >= 4, i & 3);
+            if rotflipped.w > board_w || rotflipped.h > board_h { continue; }
+            let modified = Self {
+                bitpat: Self::to_board_width(&rotflipped, board_w),
+                w: rotflipped.w,
+                h: rotflipped.h,
+                ofsy: Self::find_ofsy(rotflipped.bitpat, rotflipped.w, rotflipped.h),
+            };
             if shapes.iter().all(|s| *s != modified) {
                 shapes.push(modified)
             }
@@ -142,10 +151,22 @@ impl Shape {
         shapes
     }
 
+    fn to_board_width(shape: &Shape, board_w: usize) -> BitBoard {
+        assert!(shape.w <= board_w);
+        let mut bitpat = shape.bitpat;
+        if shape.w < board_w {
+            for y in (1..shape.h).rev() {
+                let mask = (1 << (y * shape.w)) - 1;
+                bitpat = (bitpat & mask) | ((bitpat & !mask) << (board_w - shape.w));
+            }
+        }
+        bitpat
+    }
+
     fn from(lines: &[&'static str]) -> Self {
         let w = lines[0].len();
         let h = lines.len();
-        let mut bitpat = 0 as BitPattern;
+        let mut bitpat = 0 as BitBoard;
         for y in 0..h {
             let bytes =  lines[y].as_bytes();
             for x in 0..w {
@@ -166,12 +187,11 @@ impl Shape {
         (0..rot).for_each(|_| {
             shape = Self::rot90(&shape);
         });
-        shape.find_ofsy();
         shape
     }
 
     fn flip_y(shape: &Shape) -> Self {
-        let mut bitpat = 0 as BitPattern;
+        let mut bitpat = 0 as BitBoard;
         let line_mask = (1 << shape.w) - 1;
         for y in 0..shape.h {
             let line = (shape.bitpat >> ((shape.h - y - 1) * shape.w)) & line_mask;
@@ -181,24 +201,24 @@ impl Shape {
     }
 
     fn flip_diag(shape: &Shape) -> Self {
-        let mut bitpat = 0 as BitPattern;
-        for y in 0..shape.h {
-            for x in 0..shape.w {
-                let b = (shape.bitpat >> (y * shape.w + x)) & 1;
-                bitpat |= b << (x * shape.h + y);
+        let mut bitpat = 0 as BitBoard;
+        for y in 0..shape.w {
+            for x in 0..shape.h {
+                let b = (shape.bitpat >> (x * shape.w + y)) & 1;
+                bitpat |= b << (y * shape.h + x);
             }
         }
         Shape { bitpat, w: shape.h, h: shape.w, ofsy: 0 }
     }
 
-    fn rot90(bshape: &Shape) -> Shape {
-        Self::flip_diag(&Self::flip_y(bshape))
+    fn rot90(shape: &Shape) -> Self {
+        Self::flip_diag(&Self::flip_y(shape))
     }
 
-    fn find_ofsy(&mut self) {
-        self.ofsy = (0..self.h)
+    fn find_ofsy(bitpat: BitBoard, w: usize, h: usize) -> usize {
+        (0..h)
             .into_iter()
-            .position(|y| self.is_cell(0, y))
+            .position(|y| (bitpat & (1 << (y * w))) != 0)
             .unwrap()
     }
 }

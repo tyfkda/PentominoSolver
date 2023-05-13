@@ -7,8 +7,8 @@ pub struct Piece {
 }
 
 impl Piece {
-    pub fn create_pentominos() -> Vec<Self> {
-        Shape::create_shapes().into_iter()
+    pub fn create_pentominos(board_w: usize, board_h: usize) -> Vec<Self> {
+        Shape::create_shapes(board_w, board_h).into_iter()
             .map(|(name, shapes)| {
                 Self {
                     name,
