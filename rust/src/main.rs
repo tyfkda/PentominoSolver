@@ -1,8 +1,10 @@
 mod pentomino;
 
+use atty::Stream;
 use clap::Parser;
+use colored::Colorize;
 
-use crate::pentomino::{BitBoard, Piece, PieceArrange, placed_board};
+use crate::pentomino::{BitBoard, Piece, PieceArrange};
 use crate::pentomino::solver::{DlxSolver, NaiveSolver, Solver};
 
 #[derive(Clone, Copy, Debug, clap::ValueEnum)]
@@ -42,19 +44,71 @@ struct Args {
     dlx: bool,
 }
 
+fn color_board(w: usize, h: usize, pieces: &[Piece], arranges: &[&PieceArrange]) -> Vec<Option<(char, char)>> {
+    let place_piece = |mut placed: Vec<Option<(char, char)>>, (piece, arrange): (&Piece, &&PieceArrange)| -> Vec<Option<(char, char)>> {
+        let x = arrange.x;
+        let y = arrange.y;
+        let shape = &piece.shapes[arrange.shape];
+        let mut c = piece.name;
+        for i in 0..shape.h {
+            for j in 0..shape.w {
+                if shape.is_cell(j, i) {
+                    placed[(y + i) * w + x + j] = Some((piece.name, c));
+                    c = ' ';
+                }
+            }
+        }
+        placed
+    };
+
+    let placed = vec![None; w * h];
+    pieces.iter().zip(arranges).fold(placed, place_piece)
+}
+
 fn solve(solver: &mut impl Solver, w: usize, h: usize) {
+    let tty = atty::is(Stream::Stdout);
+
     let f = move |pieces: &[Piece], arranges: &[&PieceArrange]| {
-        let placed = placed_board(w, h, &pieces, &arranges);
+        let placed = color_board(w, h, &pieces, &arranges);
         for y in 0..h {
-            let s = placed[y * w .. y * w + w].iter().collect::<String>();
-            println!("{:}", s);
+            for x in 0..w {
+                if let Some((name, c)) = placed[y * w + x] {
+                    let cs = if tty {
+                        let s = String::from(c) + " ";
+                        match name {
+                            'F' => { s.on_bright_red() },
+                            'I' => { s.on_purple().bright_white() },
+                            'L' => { s.on_bright_yellow() },
+                            'N' => { s.on_bright_blue() },
+                            'P' => { s.on_bright_purple() },
+                            'T' => { s.on_bright_cyan() },
+                            'U' => { s.on_red().bright_white() },
+                            'V' => { s.on_blue().bright_white() },
+                            'W' => { s.on_yellow().bright_white() },
+                            'X' => { s.on_bright_green() },
+                            'Y' => { s.on_green().bright_white() },
+                            _ => { s.on_cyan().bright_white() },
+                        }
+                    } else {
+                        String::from(name).normal()
+                    };
+                    print!("{cs}");
+                } else {
+                    let c = if tty {". "} else {"."};
+                    print!("{c}");
+                }
+            }
+            println!("");
         }
         println!("");
     };
     solver.set_callback(Box::new(f));
 
     let (solution_count, check_count) = solver.solve();
-    println!("Total: Solution={}, check={}", solution_count, check_count);
+
+    if tty {
+        println!("Total: Solution={}, check={}", solution_count, check_count);
+    }
 }
 
 fn main() {
