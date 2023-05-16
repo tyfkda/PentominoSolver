@@ -25,7 +25,9 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
+      Pentomino
+      Solver
+      Util
   other-modules:
       Paths_pentomino_solver
   hs-source-dirs:
