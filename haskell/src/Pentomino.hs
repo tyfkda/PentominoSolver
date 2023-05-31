@@ -1,6 +1,7 @@
 module Pentomino
     ( BitBoard, Piece, Shape
     , createPentominos
+    , shapeCells
     ) where
 import Data.Bits (complement, shiftL, shiftR, (.&.), (.|.))
 import Data.Int (Int64)
@@ -19,6 +20,10 @@ toShape ss = (bitpat, w, h, ofsy)
         h = length ss
         w = length $ head ss
         ofsy = offsetY bitpat w
+
+shapeCells :: Int -> Int -> Shape -> [(Int, Int)]
+shapeCells w _ (bitpat, sw, sh, _) = [(dx, dy) | dx <- [0..sw - 1], dy <- [0..sh - 1]
+                                               , bitpat .&. (1 `shiftL` (dy * w + dx)) /= 0]
 
 toBoardSize :: Int -> Int -> Shape -> Shape
 toBoardSize bw _ (bitpat, sw, sh, ofsy) = (bitpat', sw, sh, ofsy)

@@ -2,35 +2,49 @@ module Solver
     ( Board, Pos, Solution
     , solve
     ) where
+import Control.Monad (forM_)
+import Data.Array.ST (MArray(newArray), runSTArray, writeArray)
 import Data.Bits (shiftL, Bits ((.&.), (.|.)))
+import Data.Foldable (toList)
 import Data.Maybe (mapMaybe)
 
-import Pentomino (BitBoard, Piece, Shape)
+import Pentomino (BitBoard, Piece, Shape, shapeCells)
 import Util (eachElem, unfoldTree)
 
 type Pos = (Int, Int)
 type Board = (Int, Int, BitBoard)  -- w, h, bitpat
+type PieceArrange = (Char, Pos, Shape)
 type Solution = [Char]
-type Node = ([Piece], Pos, Board, [Char])
+type Node = ([Piece], Pos, Board, [PieceArrange])
 
 solve :: Board -> [Piece] -> [Solution]
-solve board pieces = solveRecur [(pieces, (0, 0), board, [])]
+solve board@(w, h, _) pieces = [toSolution w h arranges | arranges <- solveRecur [(pieces, (0, 0), board, [])]]
 
-solveRecur :: [Node] -> [Solution]
+toSolution :: Int -> Int -> [PieceArrange] -> [Char]
+toSolution w h arranges = toList resultArray
+    where
+        resultArray = runSTArray $ do
+            arr <- newArray (0, w * h - 1) '.'
+            forM_ arranges $ \(c, (x, y), shape) -> do
+                forM_ (shapeCells w h shape) $ \(dx, dy) -> do
+                    writeArray arr ((y + dy) * w + (x + dx)) c
+            return arr
+
+solveRecur :: [Node] -> [[PieceArrange]]
 solveRecur = unfoldTree expandNode . Left
 
-expandNode :: Node -> Either [Node] [Char]
-expandNode ([], _, _, names)           = Right names
-expandNode (pieces, pos, board, names) = Left oneStep
+expandNode :: Node -> Either [Node] [PieceArrange]
+expandNode ([], _, _, sols)                  = Right sols
+expandNode (pieces, pos@(x, y), board, sols) = Left oneStep
     where
         oneStep = concatMap f $ eachElem pieces
-        f (p@(name, _), ps) = map (g ps (name:names)) $ putPiece pos board p
-        g ps ns' b' = (ps, nextPos b' pos, b', ns')
+        f (p, ps) = map (g p ps) $ putPiece pos board p
+        g (c, _) ps (s'@(_, _, _, ofsy), b') = (ps, nextPos b' pos, b', (c, (x, y - ofsy), s'): sols)
 
-putPiece :: Pos -> Board -> Piece -> [Board]
+putPiece :: Pos -> Board -> Piece -> [(Shape, Board)]
 putPiece pos board (_, shapes) = mapMaybe f shapes
     where
-        f shape = putShape pos board shape
+        f shape = ((,) shape) <$> putShape pos board shape
 
 putShape :: Pos -> Board -> Shape -> Maybe Board
 putShape (x, y) (bw, bh, boardbits) (shapebits, sw, sh, ofsy)

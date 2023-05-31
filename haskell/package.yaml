@@ -35,6 +35,8 @@ ghc-options:
 
 library:
   source-dirs: src
+  dependencies:
+  - array
 
 executables:
   pentomino-solver-exe:
@@ -46,7 +48,9 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - pentomino-solver
+    - ansi-terminal
     - optparse-applicative
+    - unix
 
 tests:
   pentomino-solver-test:
