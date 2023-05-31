@@ -1,6 +1,6 @@
 module Main (main) where
 import Control.Monad (forM_)
-import Data.Bits (shiftL, shiftR, (.&.), (.|.))
+import Data.Bits (shiftL, (.|.))
 import Options.Applicative
 import System.Exit (exitFailure)
 import System.IO (hPutStrLn, stderr)
@@ -11,12 +11,10 @@ import Solver (Board, solve)
 solvePentomino :: Board -> IO ()
 solvePentomino board@(w, h, _) = do
     let result = solve board $ createPentominos w h
-    forM_ (take 10 result) $ \((_, _, bits), _) -> do
-        forM_ [0..h - 1] $ \y -> do
-            let line = bits `shiftR` (y * w)
-            let bin = concat $ take w $ map (show . (.&. 1)) $ iterate (`div` 2) line
-            putStrLn bin
+    forM_ result $ \ns -> do
+        putStrLn $ reverse ns
         putStrLn ""
+    print $ length result
 
 data Argument = Argument
     { size :: String

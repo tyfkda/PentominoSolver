@@ -1,24 +1,31 @@
 module Solver
-    ( Board, Pos
+    ( Board, Pos, Solution
     , solve
     ) where
 import Data.Bits (shiftL, Bits ((.&.), (.|.)))
 import Data.Maybe (mapMaybe)
 
 import Pentomino (BitBoard, Piece, Shape)
-import Util (eachElem)
+import Util (eachElem, unfoldTree)
 
 type Pos = (Int, Int)
 type Board = (Int, Int, BitBoard)  -- w, h, bitpat
+type Solution = [Char]
+type Node = ([Piece], Pos, Board, [Char])
 
-solve :: Board -> [Piece] -> [(Board, [Piece])]
-solve board pieces = solveRecur (0, 0) board pieces
+solve :: Board -> [Piece] -> [Solution]
+solve board pieces = solveRecur [(pieces, (0, 0), board, [])]
 
-solveRecur :: Pos -> Board -> [Piece] -> [(Board, [Piece])]
-solveRecur pos board pieces = concatMap f $ eachElem pieces
+solveRecur :: [Node] -> [Solution]
+solveRecur = unfoldTree expandNode . Left
+
+expandNode :: Node -> Either [Node] [Char]
+expandNode ([], _, _, names)           = Right names
+expandNode (pieces, pos, board, names) = Left oneStep
     where
-        f (p, ps) = map (g ps) $ putPiece pos board p
-        g ps b' = (b', ps)
+        oneStep = concatMap f $ eachElem pieces
+        f (p@(name, _), ps) = map (g ps (name:names)) $ putPiece pos board p
+        g ps ns' b' = (ps, nextPos b' pos, b', ns')
 
 putPiece :: Pos -> Board -> Piece -> [Board]
 putPiece pos board (_, shapes) = mapMaybe f shapes
@@ -33,3 +40,10 @@ putShape (x, y) (bw, bh, boardbits) (shapebits, sw, sh, ofsy)
         inRange = x + sw <= bw && y - ofsy >= 0 && y - ofsy + sh <= bh
         noConflict = (boardbits .&. (shapebits `shiftL` ((y - ofsy) * bw + x))) == 0
         boardbits' = boardbits .|. (shapebits `shiftL` ((y - ofsy) * bw + x))
+
+nextPos :: Board -> Pos -> Pos
+nextPos (bw, bh, bits) = head . dropWhile occupied . iterate next
+    where
+        next (x, y) | y + 1 < bh  = (x, y + 1)
+                    | otherwise   = (x + 1, 0)
+        occupied (x, y) = x < bw && y < bh && bits .&. (1 `shiftL` (y * bw + x)) /= 0
