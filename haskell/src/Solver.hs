@@ -6,10 +6,12 @@ import Control.Monad (forM_)
 import Data.Array.ST (MArray(newArray), runSTArray, writeArray)
 import Data.Bits (shiftL, Bits ((.&.), (.|.)))
 import Data.Foldable (toList)
-import Data.Maybe (mapMaybe)
+import qualified Data.HashSet as HS
+import Data.List (foldl', transpose, unfoldr)
+import Data.Maybe (catMaybes, mapMaybe)
 
 import Pentomino (BitBoard, Piece, Shape, shapeCells)
-import Util (eachElem, unfoldTree)
+import Util (eachElem, splitByWidth, unfoldTree)
 
 type Pos = (Int, Int)
 type Board = (Int, Int, BitBoard)  -- w, h, bitpat
@@ -18,9 +20,15 @@ type Solution = [Char]
 type Node = ([Piece], Pos, Board, [PieceArrange])
 
 solve :: Board -> [Piece] -> [Solution]
-solve board@(w, h, _) pieces = [toSolution w h arranges | arranges <- solveRecur [(pieces, (0, 0), board, [])]]
+solve board@(w, h, _) pieces = removeRedundant [toSolution w h arranges | arranges <- arrangess]
+    where
+        arrangess = solveRecur [(pieces, (0, 0), board, [])]
+        removeRedundant = catMaybes . unfoldr f . ((,) HS.empty)
+        f (_, [])                            = Nothing
+        f (hs, sol: sols) | HS.member sol hs = Just (Nothing, (hs, sols))
+                          | otherwise        = Just (Just sol, (registerSolution w h sol hs, sols))
 
-toSolution :: Int -> Int -> [PieceArrange] -> [Char]
+toSolution :: Int -> Int -> [PieceArrange] -> Solution
 toSolution w h arranges = toList resultArray
     where
         resultArray = runSTArray $ do
@@ -29,6 +37,17 @@ toSolution w h arranges = toList resultArray
                 forM_ (shapeCells w h shape) $ \(dx, dy) -> do
                     writeArray arr ((y + dy) * w + (x + dx)) c
             return arr
+
+registerSolution :: Int -> Int -> Solution -> HS.HashSet Solution -> HS.HashSet Solution
+registerSolution w h sol hs = foldl' (flip HS.insert) hs $ [concat ss | ss <- mirrors ++ rotated]
+    where
+        mirrors = [mx, my, mxy]
+        rotated = if w /= h then [] else [rot90 bss, rot90 mx, rot90 my, rot90 mxy]
+        mx = map reverse bss
+        my = reverse bss
+        mxy = map reverse $ reverse bss
+        rot90 = transpose . reverse
+        bss = splitByWidth w sol
 
 solveRecur :: [Node] -> [[PieceArrange]]
 solveRecur = unfoldTree expandNode . Left
