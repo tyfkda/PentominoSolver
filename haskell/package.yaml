@@ -46,6 +46,7 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - pentomino-solver
+    - optparse-applicative
 
 tests:
   pentomino-solver-test:
