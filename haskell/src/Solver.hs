@@ -5,9 +5,10 @@ module Solver
 import Control.Monad (forM_)
 import Data.Array.ST (MArray(newArray), runSTArray, writeArray)
 import Data.Bits (shiftL, Bits ((.&.), (.|.)))
+import Data.Either (lefts)
 import Data.Foldable (toList)
 import qualified Data.HashSet as HS
-import Data.List (foldl', transpose, unfoldr)
+import Data.List (foldl', partition, transpose, unfoldr)
 import Data.Maybe (catMaybes, mapMaybe)
 
 import Pentomino (BitBoard, Piece, Shape, shapeCells)
@@ -22,7 +23,9 @@ type Node = ([Piece], Pos, Board, [PieceArrange])
 solve :: Board -> [Piece] -> [Solution]
 solve board@(w, h, _) pieces = removeRedundant [toSolution w h arranges | arranges <- arrangess]
     where
-        arrangess = solveRecur [(pieces, (0, 0), board, [])]
+        arrangess = case partition (\(c, _) -> c == 'X') pieces of
+            ([x], ps) -> solveXFirst board x ps
+            _         -> solveRecur [(pieces, (0, 0), board, [])]
         removeRedundant = catMaybes . unfoldr f . ((,) HS.empty)
         f (_, [])                            = Nothing
         f (hs, sol: sols) | HS.member sol hs = Just (Nothing, (hs, sols))
@@ -48,6 +51,14 @@ registerSolution w h sol hs = foldl' (flip HS.insert) hs $ [concat ss | ss <- mi
         mxy = map reverse $ reverse bss
         rot90 = transpose . reverse
         bss = splitByWidth w sol
+
+solveXFirst :: Board -> Piece -> [Piece] -> [[PieceArrange]]
+solveXFirst board@(w, h, _) xp@(_, shapes) pieces = solveRecur xplaced
+    where
+        xplaced = [(pieces, (0, 0), b, pa) | (_, _, b, pa) <- xnodes]
+        (_, sw, sh, ofsy) = head $ shapes
+        range = [(x, y) | x <- [0..(w - sw) `div` 2], y <- [ofsy..(h - sh) `div` 2 + ofsy]]
+        xnodes = concat $ lefts [expandNode ([xp], pos, board, []) | pos <- range]
 
 solveRecur :: [Node] -> [[PieceArrange]]
 solveRecur = unfoldTree expandNode . Left
