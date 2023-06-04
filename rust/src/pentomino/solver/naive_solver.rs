@@ -27,7 +27,7 @@ impl Solver for NaiveSolver {
         self.arranges.fill(None);
 
         // Check X piece first.
-        if let Some(ip) = self.pieces.iter().position(|piece| piece.shapes.len() == 1) {
+        if let Some(ip) = self.pieces.iter().position(|piece| piece.name == 'X') {
             self.solve_x(ip);
         } else {
             self.solve_recur(0, 0);
@@ -56,9 +56,12 @@ impl NaiveSolver {
     fn solve_x(&mut self, ip: usize) {
         // Put X piece first in top left quad.
         let is = 0;
-        for x in 0..(self.w + 1) / 2 {
-            for y in 0..(self.h + 1) / 2 {
-                if x == 0 && y == 0 { continue; }
+        let (sw, sh, ofsy) = {
+            let shape = &self.pieces[ip].shapes[0];
+            (shape.w, shape.h, shape.ofsy)
+        };
+        for x in 0..=(self.w - sw) / 2 {
+            for y in ofsy..=(self.h - sh) / 2 + ofsy {
                 self.check_count += 1;
                 if let Some(ofsy) = can_put_shape(self.bitboard, self.w, self.h, &self.pieces[ip].shapes[is], x, y) {
                     self.bitboard = put_shape(self.bitboard, self.w, self.h, &self.pieces[ip].shapes[is], x, y - ofsy, true);

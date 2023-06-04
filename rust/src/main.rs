@@ -107,9 +107,7 @@ fn solve(solver: &mut impl Solver, w: usize, h: usize) {
 
     let (solution_count, check_count) = solver.solve();
 
-    if tty {
-        println!("Total: Solution={}, check={}", solution_count, check_count);
-    }
+    println!("Total: Solution={}, check={}", solution_count, check_count);
 }
 
 fn main() {
