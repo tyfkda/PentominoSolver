@@ -40,7 +40,7 @@ type Piece = (Char, [Shape])
 toPiece :: Int -> Int -> (Char, [String]) -> Piece
 toPiece bw bh (name, ss) = (name, shapes)
     where
-        shapes = map (toBoardSize bw bh) $ nub [s | s@(_, sw, sh, _) <- (rotate4 base_shape ++ rotate4 flipped_shape), sw <= bw && sh <= bh]
+        shapes = map (toBoardSize bw bh) $ nub [s | s@(_, sw, sh, _) <- rotate4 base_shape ++ rotate4 flipped_shape, sw <= bw && sh <= bh]
         rotate4 = take 4 . iterate rot90
         base_shape = toShape ss
         flipped_shape = toShape $ reverse ss

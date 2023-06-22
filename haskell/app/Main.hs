@@ -77,14 +77,14 @@ solvePentomino board@(w, h, _) = do
         putStrLn ""
     print $ length result
 
-data Argument = Argument
+newtype Argument = Argument
     { size :: String
     } deriving (Read, Show)
 
 main :: IO ()
 main = do
     args <- execParser parserInfo
-    case (boardSize $ size args) of
+    case boardSize $ size args of
         Just sz -> solvePentomino sz
         Nothing -> do
             hPutStrLn stderr $ "Illegal size: " ++ size args

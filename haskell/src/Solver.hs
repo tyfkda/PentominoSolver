@@ -26,7 +26,7 @@ solve board@(w, h, _) pieces = removeRedundant [toSolution w h arranges | arrang
         arrangess = case partition (\(c, _) -> c == 'X') pieces of
             ([x], ps) -> solveXFirst board x ps
             _         -> solveRecur [(pieces, (0, 0), board, [])]
-        removeRedundant = catMaybes . unfoldr f . ((,) HS.empty)
+        removeRedundant = catMaybes . unfoldr f . (,) HS.empty
         f (_, [])                            = Nothing
         f (hs, sol: sols) | HS.member sol hs = Just (Nothing, (hs, sols))
                           | otherwise        = Just (Just sol, (registerSolution w h sol hs, sols))
@@ -74,7 +74,7 @@ expandNode (pieces, pos@(x, y), board, sols) = Left oneStep
 putPiece :: Pos -> Board -> Piece -> [(Shape, Board)]
 putPiece pos board (_, shapes) = mapMaybe f shapes
     where
-        f shape = ((,) shape) <$> putShape pos board shape
+        f shape = (,) shape <$> putShape pos board shape
 
 putShape :: Pos -> Board -> Shape -> Maybe Board
 putShape (x, y) (bw, bh, boardbits) (shapebits, sw, sh, ofsy)
