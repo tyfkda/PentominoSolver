@@ -7,6 +7,8 @@ use colored::Colorize;
 use crate::pentomino::solver::{DlxSolver, NaiveSolver, Solver};
 use crate::pentomino::{BitBoard, Piece, PieceArrange};
 
+use std::time::Instant;
+
 #[derive(Clone, Copy, Debug, clap::ValueEnum)]
 enum BoardSize { _6x10, _5x12, _4x15, _3x20, _8x8 }
 
@@ -43,6 +45,10 @@ struct Args {
     /// Use Dancing Links algorithm
     #[arg(long)]
     dlx: bool,
+
+    /// Suppress solution output
+    #[arg(short, long)]
+    quiet: bool,
 }
 
 fn color_board(w: usize, h: usize, pieces: &[Piece], arranges: &[&PieceArrange]) -> Vec<Option<(char, char)>> {
@@ -101,16 +107,23 @@ fn print_result(w: usize, h: usize, tty: bool, pieces: &[Piece], arranges: &[&Pi
     println!("");
 }
 
-fn solve(solver: &mut impl Solver, w: usize, h: usize) {
-    let tty = atty::is(Stream::Stdout);
-    let f = move |pieces: &[Piece], arranges: &[&PieceArrange]| {
-        print_result(w, h, tty, pieces, arranges);
-    };
-    solver.set_callback(Box::new(f));
+fn solve(solver: &mut impl Solver, args: &Args) {
+    let size = args.size.unwrap_or(BoardSize::_6x10);
+    let (h, w, _) = size.hwb();
 
+    if !args.quiet {
+        let tty = atty::is(Stream::Stdout);
+        let f = move |pieces: &[Piece], arranges: &[&PieceArrange]| {
+            print_result(w, h, tty, pieces, arranges);
+        };
+        solver.set_callback(Box::new(f));
+    }
+
+    let now = Instant::now();
     let (solution_count, check_count) = solver.solve();
+    let elapsed = now.elapsed();
 
-    println!("Total: Solution={}, check={}", solution_count, check_count);
+    println!("Total: Solution={}, check={}, elapsed={elapsed:?}", solution_count, check_count);
 }
 
 fn main() {
@@ -122,9 +135,9 @@ fn main() {
 
     if args.dlx {
         let mut solver: DlxSolver = DlxSolver::new(w, h, pieces, initial_bitboard);
-        solve(&mut solver, w, h);
+        solve(&mut solver, &args);
     } else {
         let mut solver = NaiveSolver::new(w, h, pieces, initial_bitboard);
-        solve(&mut solver, w, h);
+        solve(&mut solver, &args);
     }
 }

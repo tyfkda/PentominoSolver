@@ -1,7 +1,8 @@
 module Main (main) where
-import Control.Monad (forM_, void)
+import Control.Monad (forM_, unless, void)
 import Data.Bits (shiftL, (.|.))
 import Data.List (unfoldr)
+import Data.Time (diffUTCTime, getCurrentTime)
 import Options.Applicative
 import System.Console.ANSI
 import System.Exit (exitFailure)
@@ -67,25 +68,30 @@ printSolution (putc, eol) w _ sol = do
                        | otherwise     = Just ((c, c),   (cs, c:used))
         f ([], _)      = Nothing
 
-solvePentomino :: Board -> IO ()
-solvePentomino board@(w, h, _) = do
+solvePentomino :: Board -> Bool -> IO ()
+solvePentomino board@(w, h, _) isQuiet = do
+    start <- getCurrentTime
     let result = solve board $ createPentominos w h
-    istty <- queryTerminal stdOutput
-    let printer = choosePrinter istty
-    forM_ result $ \sol -> do
-        printSolution printer w h sol
-        putStrLn ""
+    unless isQuiet $ do
+        istty <- queryTerminal stdOutput
+        let printer = choosePrinter istty
+        forM_ result $ \sol -> do
+            printSolution printer w h sol
+            putStrLn ""
     print $ length result
+    stop <- getCurrentTime
+    putStrLn $ "Elapsed: " ++ show (diffUTCTime stop start)
 
-newtype Argument = Argument
+data Argument = Argument
     { size :: String
+    , quiet :: Bool
     } deriving (Read, Show)
 
 main :: IO ()
 main = do
     args <- execParser parserInfo
     case boardSize $ size args of
-        Just sz -> solvePentomino sz
+        Just sz -> solvePentomino sz (quiet args)
         Nothing -> do
             hPutStrLn stderr $ "Illegal size: " ++ size args
             exitFailure
@@ -93,6 +99,7 @@ main = do
         parserInfo = argumentParser `withInfo` "Pentomino Solver"
         argumentParser = Argument
             <$> strOption (short 's' <> long "size" <> value "6x10" <> help "Board size (6x10, 5x12, 4x15, 3x20, 8x8)")
+            <*> switch (short 'q' <> long "quiet" <> help "Suppress solution output")
         withInfo p = info (p <**> helper) . progDesc
 
 boardSize :: String -> Maybe Board

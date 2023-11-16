@@ -51,6 +51,7 @@ executable pentomino-solver-exe
     , base >=4.7 && <5
     , optparse-applicative
     , pentomino-solver
+    , time
     , unix
   default-language: Haskell2010
 

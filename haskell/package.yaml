@@ -52,6 +52,7 @@ executables:
     - ansi-terminal
     - optparse-applicative
     - unix
+    - time
 
 tests:
   pentomino-solver-test:
