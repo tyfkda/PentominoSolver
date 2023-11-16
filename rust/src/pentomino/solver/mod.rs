@@ -4,9 +4,10 @@ mod naive_solver;
 pub use dlx_solver::DlxSolver;
 pub use naive_solver::NaiveSolver;
 
-use super::{Piece, PieceArrange};
+use super::{BitBoard, Piece, PieceArrange};
 
 pub trait Solver {
+    fn new(w: usize, h: usize, pieces: Vec<Piece>, bitboard: BitBoard) -> Self;
     fn set_callback(&mut self, callback: Box<dyn Fn(&[Piece], &[PieceArrange])>);
     fn solve(&mut self) -> (usize, usize);
 }

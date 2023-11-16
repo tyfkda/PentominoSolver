@@ -21,6 +21,22 @@ pub struct NaiveSolver {
 }
 
 impl Solver for NaiveSolver {
+    fn new(w: usize, h: usize, pieces: Vec<Piece>, bitboard: BitBoard) -> Self {
+        let n = pieces.len();
+        Self {
+            bitboard,
+            w,
+            h,
+            pieces,
+            found_callback: Box::new(|_, _| {}),
+            arranges: vec![PieceArrange::default(); n],
+            arranged: 0,
+            check_count: 0,
+            solution_count: 0,
+            solution_hashes: HashSet::new(),
+        }
+    }
+
     fn set_callback(&mut self, callback: Box<dyn Fn(&[Piece], &[PieceArrange])>) {
         self.found_callback = callback;
     }
@@ -41,22 +57,6 @@ impl Solver for NaiveSolver {
 }
 
 impl NaiveSolver {
-    pub fn new(w: usize, h: usize, pieces: Vec<Piece>, bitboard: BitBoard) -> Self {
-        let n = pieces.len();
-        Self {
-            bitboard,
-            w,
-            h,
-            pieces,
-            found_callback: Box::new(|_, _| {}),
-            arranges: vec![PieceArrange::default(); n],
-            arranged: 0,
-            check_count: 0,
-            solution_count: 0,
-            solution_hashes: HashSet::new(),
-        }
-    }
-
     fn solve_x(&mut self, ip: usize) {
         // Put X piece first in top left quad.
         let is = 0;

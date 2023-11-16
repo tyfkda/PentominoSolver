@@ -105,9 +105,11 @@ fn print_result(w: usize, h: usize, tty: bool, pieces: &[Piece], arranges: &[Pie
     println!("");
 }
 
-fn solve(solver: &mut impl Solver, args: &Args) {
+fn solve<T: Solver>(args: &Args) {
     let size = args.size.unwrap_or(BoardSize::_6x10);
-    let (h, w, _) = size.hwb();
+    let (h, w, initial_bitboard) = size.hwb();
+    let pieces = Piece::create_pentominos(w, h);
+    let mut solver: T = T::new(w, h, pieces, initial_bitboard);
 
     if !args.quiet {
         let tty = atty::is(Stream::Stdout);
@@ -126,16 +128,10 @@ fn solve(solver: &mut impl Solver, args: &Args) {
 
 fn main() {
     let args = Args::parse();
-    let size = args.size.unwrap_or(BoardSize::_6x10);
-    let (h, w, initial_bitboard) = size.hwb();
-
-    let pieces = Piece::create_pentominos(w, h);
 
     if args.dlx {
-        let mut solver: DlxSolver = DlxSolver::new(w, h, pieces, initial_bitboard);
-        solve(&mut solver, &args);
+        solve::<DlxSolver>(&args);
     } else {
-        let mut solver = NaiveSolver::new(w, h, pieces, initial_bitboard);
-        solve(&mut solver, &args);
+        solve::<NaiveSolver>(&args);
     }
 }

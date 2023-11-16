@@ -24,6 +24,21 @@ pub struct DlxSolver {
 }
 
 impl Solver for DlxSolver {
+    fn new(w: usize, h: usize, pieces: Vec<Piece>, bitboard: BitBoard) -> Self {
+        let possibilities = Possibility::all(w, h, &pieces, bitboard).collect();
+        let constraints = Constraint::all(w, h, bitboard, pieces.len()).collect();
+
+        Self {
+            pieces,
+            possibilities,
+            constraints,
+
+            w,
+            h,
+            found_callback: Box::new(|_, _| {}),
+        }
+    }
+
     fn set_callback(&mut self, callback: Box<dyn Fn(&[Piece], &[PieceArrange])>) {
         self.found_callback = callback;
     }
@@ -54,21 +69,6 @@ impl Solver for DlxSolver {
 }
 
 impl DlxSolver {
-    pub fn new(w: usize, h: usize, pieces: Vec<Piece>, bitboard: BitBoard) -> Self {
-        let possibilities = Possibility::all(w, h, &pieces, bitboard).collect();
-        let constraints = Constraint::all(w, h, bitboard, pieces.len()).collect();
-
-        Self {
-            pieces,
-            possibilities,
-            constraints,
-
-            w,
-            h,
-            found_callback: Box::new(|_, _| {}),
-        }
-    }
-
     fn add_solution(&self, solution_hashes: &mut HashSet<String>, placed: &Vec<char>) {
         // Register mirrored.
         let mut mirrored = placed.clone();
