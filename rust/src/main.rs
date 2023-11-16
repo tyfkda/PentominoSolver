@@ -4,8 +4,8 @@ use atty::Stream;
 use clap::Parser;
 use colored::Colorize;
 
-use crate::pentomino::{BitBoard, Piece, PieceArrange};
 use crate::pentomino::solver::{DlxSolver, NaiveSolver, Solver};
+use crate::pentomino::{BitBoard, Piece, PieceArrange};
 
 #[derive(Clone, Copy, Debug, clap::ValueEnum)]
 enum BoardSize { _6x10, _5x12, _4x15, _3x20, _8x8 }
@@ -23,11 +23,11 @@ impl BoardSize {
 
     fn parse(s: &str) -> Result<BoardSize, String> {
         match s {
-            "6x10" | "6" => Ok(BoardSize::_6x10),
-            "5x12" | "5" => Ok(BoardSize::_5x12),
-            "4x15" | "4" => Ok(BoardSize::_4x15),
-            "3x20" | "3" => Ok(BoardSize::_3x20),
-            "8x8"  | "8" => Ok(BoardSize::_8x8),
+            "6x10" | "6" | "10x6" => Ok(BoardSize::_6x10),
+            "5x12" | "5" | "12x5" => Ok(BoardSize::_5x12),
+            "4x15" | "4" | "15x4" => Ok(BoardSize::_4x15),
+            "3x20" | "3" | "20x3" => Ok(BoardSize::_3x20),
+            "8x8"  | "8"          => Ok(BoardSize::_8x8),
             _ => Err(String::from("Illegal size")),
         }
     }
@@ -36,7 +36,7 @@ impl BoardSize {
 #[derive(Parser, Debug)]
 #[command(about, long_about = None)]
 struct Args {
-    /// Board size (10x6, 12x5, 15x4, 20x3, 8x8 (default: 10x6))
+    /// Board size (6x10, 5x12, 4x15, 3x20, 8x8 (default: 6x10))
     #[arg(short, long, value_parser = BoardSize::parse)]
     size: Option<BoardSize>,
 
@@ -77,25 +77,25 @@ fn solve(solver: &mut impl Solver, w: usize, h: usize) {
                     let cs = if tty {
                         let s = String::from(c) + " ";
                         match name {
-                            'F' => { s.on_bright_red() },
-                            'I' => { s.on_purple().bright_white() },
-                            'L' => { s.on_bright_yellow() },
-                            'N' => { s.on_bright_blue() },
-                            'P' => { s.on_bright_purple() },
-                            'T' => { s.on_bright_cyan() },
-                            'U' => { s.on_red().bright_white() },
-                            'V' => { s.on_blue().bright_white() },
-                            'W' => { s.on_yellow().bright_white() },
-                            'X' => { s.on_bright_green() },
-                            'Y' => { s.on_green().bright_white() },
-                            _ => { s.on_cyan().bright_white() },
+                            'F' => s.on_bright_red(),
+                            'I' => s.on_purple().bright_white(),
+                            'L' => s.on_bright_yellow(),
+                            'N' => s.on_bright_blue(),
+                            'P' => s.on_bright_purple(),
+                            'T' => s.on_bright_cyan(),
+                            'U' => s.on_red().bright_white(),
+                            'V' => s.on_blue().bright_white(),
+                            'W' => s.on_yellow().bright_white(),
+                            'X' => s.on_bright_green(),
+                            'Y' => s.on_green().bright_white(),
+                            _ => s.on_cyan().bright_white(),
                         }
                     } else {
                         String::from(name).normal()
                     };
                     print!("{cs}");
                 } else {
-                    let c = if tty {". "} else {"."};
+                    let c = if tty { ". " } else { "." };
                     print!("{c}");
                 }
             }
@@ -116,9 +116,6 @@ fn main() {
     let (h, w, initial_bitboard) = size.hwb();
 
     let pieces = Piece::create_pentominos(w, h);
-    // for piece in &pieces {
-    //     println!("{}: {:?}", piece.shapes.len(), piece);
-    // }
 
     if args.dlx {
         let mut solver: DlxSolver = DlxSolver::new(w, h, pieces, initial_bitboard);

@@ -1,4 +1,4 @@
-use super::{BitBoard, delta_swap};
+use super::{delta_swap, BitBoard};
 
 // Bit pattern is stored as multiple rows,
 // and its line width is same as board_w.
@@ -168,9 +168,9 @@ impl Shape {
         let h = lines.len();
         let mut bitpat = 0 as BitBoard;
         for y in 0..h {
-            let bytes =  lines[y].as_bytes();
+            let bytes = lines[y].as_bytes();
             for x in 0..w {
-                let c =  bytes[w - x - 1];
+                let c = bytes[w - x - 1];
                 if c != 32 {
                     bitpat |= 1 << (y * w + x);
                 }

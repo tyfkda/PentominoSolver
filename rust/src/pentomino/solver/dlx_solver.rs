@@ -4,11 +4,11 @@ use std::collections::HashSet;
 
 // use core::iter;
 // use std::collections::HashSet;
-use dancing_links::{ExactCover};
+use dancing_links::ExactCover;
 
-use crate::pentomino::{Piece, BitBoard, PieceArrange, placed_board};
+use crate::pentomino::{placed_board, BitBoard, Piece, PieceArrange};
 
-use super::{Solver, calc_hash, mirror_diag, mirror_x, mirror_y};
+use super::{calc_hash, mirror_diag, mirror_x, mirror_y, Solver};
 
 pub struct DlxSolver {
     /// The list of possible values and positions that are valid for this Sudoku
@@ -151,7 +151,7 @@ impl Possibility {
                 let xx = x - self.x;
                 let yy = y - self.y;
                 xx < shape.w && yy < shape.h && shape.is_cell(xx, yy, board_w)
-            },
+            }
             &Constraint::Piece(piece) => self.piece == piece,
         }
     }

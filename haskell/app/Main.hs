@@ -97,9 +97,9 @@ main = do
 
 boardSize :: String -> Maybe Board
 boardSize sizeStr
-    | sizeStr == "6x10" || sizeStr == "6"  = Just (10, 6, 0)
-    | sizeStr == "5x12" || sizeStr == "5"  = Just (12, 5, 0)
-    | sizeStr == "4x15" || sizeStr == "4"  = Just (15, 4, 0)
-    | sizeStr == "3x20" || sizeStr == "3"  = Just (20, 3, 0)
+    | sizeStr == "6x10" || sizeStr == "6" || sizeStr == "10x6"  = Just (10, 6, 0)
+    | sizeStr == "5x12" || sizeStr == "5" || sizeStr == "12x5"  = Just (12, 5, 0)
+    | sizeStr == "4x15" || sizeStr == "4" || sizeStr == "15x4"  = Just (15, 4, 0)
+    | sizeStr == "3x20" || sizeStr == "3" || sizeStr == "20x3"  = Just (20, 3, 0)
     | sizeStr == "8x8"  || sizeStr == "8"  = Just ( 8, 8, (3 `shiftL` (3 * 8 + 3)) .|. (3 `shiftL` (4 * 8 + 3)))
     | otherwise                            = Nothing
