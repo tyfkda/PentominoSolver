@@ -3,9 +3,9 @@ module Pentomino
     , createPentominos
     , shapeCells
     ) where
-import Data.Bits (complement, shiftL, shiftR, (.&.), (.|.))
+import Data.Bits (complement, countTrailingZeros, shiftL, shiftR, (.&.), (.|.))
 import Data.Int (Int64)
-import Data.List (foldl', nub)
+import Data.List (foldl', nub, unfoldr)
 
 type BitBoard = Int64
 type Shape = (BitBoard, Int, Int, Int)  -- bitpat, w, h, ofsy
@@ -13,7 +13,7 @@ type Shape = (BitBoard, Int, Int, Int)  -- bitpat, w, h, ofsy
 toShape :: [String] -> Shape
 toShape ss = (bitpat, w, h, ofsy)
     where
-        bitpat = foldl f 0 $ concat ss
+        bitpat = foldl' f 0 $ concat ss
         f acc c = (acc `shiftL` 1) + tobin c
         tobin ' ' = 0
         tobin _   = 1
@@ -21,9 +21,11 @@ toShape ss = (bitpat, w, h, ofsy)
         w = length $ head ss
         ofsy = offsetY bitpat w
 
-shapeCells :: Int -> Int -> Shape -> [(Int, Int)]
-shapeCells w _ (bitpat, sw, sh, _) = [(dx, dy) | dx <- [0..sw - 1], dy <- [0..sh - 1]
-                                               , bitpat .&. (1 `shiftL` (dy * w + dx)) /= 0]
+shapeCells :: Shape -> [Int]
+shapeCells (bitpat, _sw, _sh, _) = unfoldr f bitpat
+    where
+        f b | b == 0    = Nothing
+            | otherwise = Just (countTrailingZeros b, b .&. (b - 1))
 
 toBoardSize :: Int -> Int -> Shape -> Shape
 toBoardSize bw _ (bitpat, sw, sh, ofsy) = (bitpat', sw, sh, ofsy)
@@ -48,7 +50,7 @@ toPiece bw bh (name, ss) = (name, shapes)
 rot90 :: Shape -> Shape
 rot90 (bitpat, w, h, _) = (bitpat', h, w, ofsy)
     where
-        bitpat' = foldl f 0 [(x, y) | x <- [0..w - 1], y <- [0..h - 1]]
+        bitpat' = foldl' f 0 [(x, y) | x <- [0..w - 1], y <- [0..h - 1]]
         f acc (x, y) = acc .|. (bit2d (w - 1 - x) y `shiftL` (x * h + y))
         bit2d x y = (bitpat `shiftR` (y * w + x)) .&. 1
         ofsy = offsetY bitpat' h

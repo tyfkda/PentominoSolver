@@ -53,17 +53,15 @@ struct Args {
 
 fn color_board(w: usize, h: usize, pieces: &[Piece], arranges: &[&PieceArrange]) -> Vec<Option<(char, char)>> {
     let place_piece = |mut placed: Vec<Option<(char, char)>>, (piece, arrange): (&Piece, &&PieceArrange)| -> Vec<Option<(char, char)>> {
-        let x = arrange.x;
-        let y = arrange.y;
+        let base_index = arrange.y * w + arrange.x;
         let shape = &piece.shapes[arrange.shape];
         let mut c = piece.name;
-        for i in 0..shape.h {
-            for j in 0..shape.w {
-                if shape.is_cell(j, i, w) {
-                    placed[(y + i) * w + x + j] = Some((piece.name, c));
-                    c = ' ';
-                }
-            }
+        let mut bitpat = shape.bitpat;
+        while bitpat != 0 {
+            let ofs = bitpat.trailing_zeros() as usize;
+            placed[base_index + ofs] = Some((piece.name, c));
+            c = ' ';
+            bitpat = bitpat & (bitpat - 1);  // Remove lowest bit.
         }
         placed
     };

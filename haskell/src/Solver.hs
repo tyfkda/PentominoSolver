@@ -37,8 +37,8 @@ toSolution w h arranges = toList resultArray
         resultArray = runSTArray $ do
             arr <- newArray (0, w * h - 1) '.'
             forM_ arranges $ \(c, (x, y), shape) -> do
-                forM_ (shapeCells w h shape) $ \(dx, dy) -> do
-                    writeArray arr ((y + dy) * w + (x + dx)) c
+                forM_ (shapeCells shape) $ \ofs -> do
+                    writeArray arr (y * w + x + ofs) c
             return arr
 
 registerSolution :: Int -> Int -> Solution -> HS.HashSet Solution -> HS.HashSet Solution
