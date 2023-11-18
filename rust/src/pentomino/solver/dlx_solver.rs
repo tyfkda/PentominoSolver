@@ -20,11 +20,11 @@ pub struct DlxSolver {
     w: usize,
     h: usize,
     pieces: Vec<Piece>,
-    found_callback: Box<dyn Fn(&[Piece], &[&PieceArrange])>,
+    found_callback: Box<dyn Fn(&[Piece], &[PieceArrange])>,
 }
 
 impl Solver for DlxSolver {
-    fn set_callback(&mut self, callback: Box<dyn Fn(&[Piece], &[&PieceArrange])>) {
+    fn set_callback(&mut self, callback: Box<dyn Fn(&[Piece], &[PieceArrange])>) {
         self.found_callback = callback;
     }
 
@@ -38,15 +38,14 @@ impl Solver for DlxSolver {
                 arranges[p.piece] = PieceArrange {x: p.x, y: p.y, shape: p.shape};
             }
 
-            let placed = placed_board(self.w, self.h, &self.pieces, &arranges.iter().map(|a| a).collect::<Vec<_>>());
+            let placed = placed_board(self.w, self.h, &self.pieces, &arranges);
             let hash = calc_hash(&placed);
             if solution_hashes.contains(&hash) {
                 continue;
             }
             self.add_solution(&mut solution_hashes, &placed);
 
-            let solp: Vec<&PieceArrange> = arranges.iter().map(|a| a).collect();
-            (self.found_callback)(&self.pieces, &solp);
+            (self.found_callback)(&self.pieces, &arranges);
             total += 1;
         }
 

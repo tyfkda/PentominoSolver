@@ -7,8 +7,8 @@ pub use shape::Shape;
 
 pub type BitBoard = u64;
 
-pub fn placed_board(w: usize, h: usize, pieces: &[Piece], arranges: &[&PieceArrange]) -> Vec<char> {
-    let place_piece = |mut placed: Vec<char>, (piece, arrange): (&Piece, &&PieceArrange)| -> Vec<char> {
+pub fn placed_board(w: usize, h: usize, pieces: &[Piece], arranges: &[PieceArrange]) -> Vec<char> {
+    let place_piece = |mut placed: Vec<char>, (piece, arrange): (&Piece, &PieceArrange)| -> Vec<char> {
         let base_index = arrange.y * w + arrange.x;
         let shape = &piece.shapes[arrange.shape];
         let mut bitpat = shape.bitpat;

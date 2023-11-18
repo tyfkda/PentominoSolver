@@ -7,7 +7,7 @@ pub use naive_solver::NaiveSolver;
 use super::{Piece, PieceArrange};
 
 pub trait Solver {
-    fn set_callback(&mut self, callback: Box<dyn Fn(&[Piece], &[&PieceArrange])>);
+    fn set_callback(&mut self, callback: Box<dyn Fn(&[Piece], &[PieceArrange])>);
     fn solve(&mut self) -> (usize, usize);
 }
 

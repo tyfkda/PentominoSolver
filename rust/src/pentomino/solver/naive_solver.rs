@@ -11,22 +11,23 @@ pub struct NaiveSolver {
     w: usize,
     h: usize,
     pieces: Vec<Piece>,
-    found_callback: Box<dyn Fn(&[Piece], &[&PieceArrange])>,
+    found_callback: Box<dyn Fn(&[Piece], &[PieceArrange])>,
 
-    arranges: Vec<Option<PieceArrange>>,
+    arranges: Vec<PieceArrange>,
+    arranged: u32,
     pub check_count: usize,
     pub solution_count: usize,
     solution_hashes: HashSet<String>,
 }
 
 impl Solver for NaiveSolver {
-    fn set_callback(&mut self, callback: Box<dyn Fn(&[Piece], &[&PieceArrange])>) {
+    fn set_callback(&mut self, callback: Box<dyn Fn(&[Piece], &[PieceArrange])>) {
         self.found_callback = callback;
     }
 
     fn solve(&mut self) -> (usize, usize) {
         self.check_count = 0;
-        self.arranges.fill(None);
+        self.arranged = 0;
 
         // Check X piece first.
         if let Some(ip) = self.pieces.iter().position(|piece| piece.name == 'X') {
@@ -48,7 +49,8 @@ impl NaiveSolver {
             h,
             pieces,
             found_callback: Box::new(|_, _| {}),
-            arranges: vec![None; n],
+            arranges: vec![PieceArrange::default(); n],
+            arranged: 0,
             check_count: 0,
             solution_count: 0,
             solution_hashes: HashSet::new(),
@@ -68,8 +70,9 @@ impl NaiveSolver {
                 self.check_count += 1;
                 let shape = &self.pieces[ip].shapes[is];
                 if can_put_shape(saved_bitboard, self.w, self.h, shape, x, y) {
-                    self.bitboard = put_shape(saved_bitboard, self.w, self.h, shape, x, y - shape.ofsy);
-                    self.arranges[ip] = Some(PieceArrange {x, y: y - shape.ofsy, shape: 0});
+                    self.bitboard = put_shape(saved_bitboard, self.w, self.h, &self.pieces[ip].shapes[is], x, y - shape.ofsy);
+                    self.arranges[ip] = PieceArrange {x, y: y - shape.ofsy, shape: 0};
+                    self.arranged |= 1 << ip;
                     self.solve_recur(0, 0);
                 }
             }
@@ -79,20 +82,24 @@ impl NaiveSolver {
     fn solve_recur(&mut self, x: usize, y: usize) {
         self.check_count += 1;
         let saved_bitboard = self.bitboard;
-        for ip in 0..self.pieces.len() {
-            if self.arranges[ip].is_some() {
-                continue;
-            }
+        let piece_count = self.pieces.len();
+        let mut order = self.arranged;
+        loop {
+            let ip = order.trailing_ones() as usize;
+            if ip >= piece_count { break; }
+            order |= 1 << ip;
             for is in 0..self.pieces[ip].shapes.len() {
                 let shape = &self.pieces[ip].shapes[is];
                 if can_put_shape(saved_bitboard, self.w, self.h, shape, x, y) {
                     self.bitboard = put_shape(saved_bitboard, self.w, self.h, shape, x, y - shape.ofsy);
-                    self.arranges[ip] = Some(PieceArrange {x, y: y - shape.ofsy, shape: is});
-                    if let Some((nx, ny)) = self.search_next_pos(x, y, self.bitboard) {
+                    self.arranges[ip] = PieceArrange {x, y: y - shape.ofsy, shape: is};
+                    self.arranged |= 1 << ip;
+                    if self.arranged != (1 << piece_count) - 1 {
+                        let (nx, ny) = self.search_next_pos(x, y, self.bitboard);
                         self.solve_recur(nx, ny);
                     } else {
                         // All pieces are placed -> check whether this solution is unique.
-                        let arranges = self.arranges.iter().map(|e| e.as_ref().unwrap()).collect::<Vec<_>>();
+                        let arranges = self.arranges.iter().map(|e| e.clone()).collect::<Vec<_>>();
                         let placed = placed_board(self.w, self.h, &self.pieces, &arranges);
                         if self.is_unique_solution(&placed) {
                             (self.found_callback)(&self.pieces, &arranges);
@@ -101,7 +108,7 @@ impl NaiveSolver {
                     }
                 }
             }
-            self.arranges[ip] = None;
+            self.arranged &= !(1 << ip);
         }
     }
 
@@ -135,16 +142,15 @@ impl NaiveSolver {
         }
     }
 
-    fn search_next_pos(&self, mut x: usize, mut y: usize, bitboard: BitBoard) -> Option<(usize, usize)> {
+    fn search_next_pos(&self, mut x: usize, mut y: usize, bitboard: BitBoard) -> (usize, usize) {
         loop {
             y += 1;
             if y >= self.h {
                 y = 0;
                 x += 1;
-                if x >= self.w { return None }
             }
             let index = y * self.w + x;
-            if (bitboard & (1 << index)) == 0 { return Some((x, y)) }
+            if (bitboard & (1 << index)) == 0 { return (x, y); }
         }
     }
 }

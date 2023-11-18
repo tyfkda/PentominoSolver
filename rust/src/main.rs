@@ -51,8 +51,8 @@ struct Args {
     quiet: bool,
 }
 
-fn color_board(w: usize, h: usize, pieces: &[Piece], arranges: &[&PieceArrange]) -> Vec<Option<(char, char)>> {
-    let place_piece = |mut placed: Vec<Option<(char, char)>>, (piece, arrange): (&Piece, &&PieceArrange)| -> Vec<Option<(char, char)>> {
+fn color_board(w: usize, h: usize, pieces: &[Piece], arranges: &[PieceArrange]) -> Vec<Option<(char, char)>> {
+    let place_piece = |mut placed: Vec<Option<(char, char)>>, (piece, arrange): (&Piece, &PieceArrange)| -> Vec<Option<(char, char)>> {
         let base_index = arrange.y * w + arrange.x;
         let shape = &piece.shapes[arrange.shape];
         let mut c = piece.name;
@@ -70,7 +70,7 @@ fn color_board(w: usize, h: usize, pieces: &[Piece], arranges: &[&PieceArrange])
     pieces.iter().zip(arranges).fold(placed, place_piece)
 }
 
-fn print_result(w: usize, h: usize, tty: bool, pieces: &[Piece], arranges: &[&PieceArrange]) {
+fn print_result(w: usize, h: usize, tty: bool, pieces: &[Piece], arranges: &[PieceArrange]) {
     let placed = color_board(w, h, &pieces, &arranges);
     for y in 0..h {
         for x in 0..w {
@@ -111,7 +111,7 @@ fn solve(solver: &mut impl Solver, args: &Args) {
 
     if !args.quiet {
         let tty = atty::is(Stream::Stdout);
-        let f = move |pieces: &[Piece], arranges: &[&PieceArrange]| {
+        let f = move |pieces: &[Piece], arranges: &[PieceArrange]| {
             print_result(w, h, tty, pieces, arranges);
         };
         solver.set_callback(Box::new(f));
