@@ -1,4 +1,4 @@
-use super::{delta_swap, BitBoard};
+use super::{delta_swap, BitBoard, NUM_PIECES};
 
 // Bit pattern is stored as multiple rows,
 // and its line width is same as board_w.
@@ -16,7 +16,7 @@ impl Shape {
         (self.bitpat & (1 << (y * board_w + x))) != 0
     }
 
-    pub fn create_shapes(board_w: usize, board_h: usize) -> Vec<(char, Vec<Self>)> {
+    pub fn create_shapes(board_w: usize, board_h: usize) -> [(char, Vec<Self>); NUM_PIECES] {
         // F, I, L, N, P, T, U, V, W, X, Y, Z
         let original_shapes = [
             OriginalShape {
@@ -122,9 +122,7 @@ impl Shape {
         ];
 
         original_shapes
-            .iter()
-            .map(|pat| (pat.name, Self::create(pat, board_w, board_h)))
-            .collect()
+            .map(|pat| (pat.name, Self::create(&pat, board_w, board_h)))
     }
 
     fn create(oshape: &OriginalShape, board_w: usize, board_h: usize) -> Vec<Self> {

@@ -1,4 +1,5 @@
 use super::shape::Shape;
+use super::NUM_PIECES;
 
 #[derive(Clone, Debug)]
 pub struct Piece {
@@ -7,11 +8,9 @@ pub struct Piece {
 }
 
 impl Piece {
-    pub fn create_pentominos(board_w: usize, board_h: usize) -> Vec<Self> {
+    pub fn create_pentominos(board_w: usize, board_h: usize) -> [Self; NUM_PIECES] {
         Shape::create_shapes(board_w, board_h)
-            .into_iter()
             .map(|(name, shapes)| Self { name, shapes })
-            .collect()
     }
 }
 

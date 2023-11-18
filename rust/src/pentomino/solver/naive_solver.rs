@@ -2,7 +2,7 @@
 
 use std::collections::HashSet;
 
-use crate::pentomino::{placed_board, BitBoard, Piece, PieceArrange, Shape};
+use crate::pentomino::{placed_board, BitBoard, Piece, PieceArrange, Shape, NUM_PIECES};
 
 use super::{calc_hash, mirror_diag, mirror_x, mirror_y, Solver};
 
@@ -10,10 +10,10 @@ pub struct NaiveSolver {
     bitboard: BitBoard,
     w: usize,
     h: usize,
-    pieces: Vec<Piece>,
+    pieces: [Piece; NUM_PIECES],
     found_callback: Box<dyn Fn(&[Piece], &[PieceArrange])>,
 
-    arranges: Vec<PieceArrange>,
+    arranges: [PieceArrange; NUM_PIECES],
     arranged: u32,
     pub check_count: usize,
     pub solution_count: usize,
@@ -21,15 +21,14 @@ pub struct NaiveSolver {
 }
 
 impl Solver for NaiveSolver {
-    fn new(w: usize, h: usize, pieces: Vec<Piece>, bitboard: BitBoard) -> Self {
-        let n = pieces.len();
+    fn new(w: usize, h: usize, pieces: [Piece; NUM_PIECES], bitboard: BitBoard) -> Self {
         Self {
             bitboard,
             w,
             h,
             pieces,
             found_callback: Box::new(|_, _| {}),
-            arranges: vec![PieceArrange::default(); n],
+            arranges: std::array::from_fn(|_| PieceArrange::default()),
             arranged: 0,
             check_count: 0,
             solution_count: 0,
@@ -82,11 +81,10 @@ impl NaiveSolver {
     fn solve_recur(&mut self, x: usize, y: usize) {
         self.check_count += 1;
         let saved_bitboard = self.bitboard;
-        let piece_count = self.pieces.len();
         let mut order = self.arranged;
         loop {
             let ip = order.trailing_ones() as usize;
-            if ip >= piece_count { break; }
+            if ip >= NUM_PIECES { break; }
             order |= 1 << ip;
             for is in 0..self.pieces[ip].shapes.len() {
                 let shape = &self.pieces[ip].shapes[is];
@@ -94,15 +92,14 @@ impl NaiveSolver {
                     self.bitboard = put_shape(saved_bitboard, self.w, self.h, shape, x, y - shape.ofsy);
                     self.arranges[ip] = PieceArrange {x, y: y - shape.ofsy, shape: is};
                     self.arranged |= 1 << ip;
-                    if self.arranged != (1 << piece_count) - 1 {
+                    if self.arranged != (1 << NUM_PIECES) - 1 {
                         let (nx, ny) = self.search_next_pos(x, y, self.bitboard);
                         self.solve_recur(nx, ny);
                     } else {
                         // All pieces are placed -> check whether this solution is unique.
-                        let arranges = self.arranges.iter().map(|e| e.clone()).collect::<Vec<_>>();
-                        let placed = placed_board(self.w, self.h, &self.pieces, &arranges);
+                        let placed = placed_board(self.w, self.h, &self.pieces, &self.arranges);
                         if self.is_unique_solution(&placed) {
-                            (self.found_callback)(&self.pieces, &arranges);
+                            (self.found_callback)(&self.pieces, &self.arranges);
                             self.add_solution(&placed);
                         }
                     }

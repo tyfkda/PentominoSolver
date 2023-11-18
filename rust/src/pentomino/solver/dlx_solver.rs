@@ -6,7 +6,7 @@ use std::collections::HashSet;
 // use std::collections::HashSet;
 use dancing_links::ExactCover;
 
-use crate::pentomino::{placed_board, BitBoard, Piece, PieceArrange};
+use crate::pentomino::{placed_board, BitBoard, Piece, PieceArrange, NUM_PIECES};
 
 use super::{calc_hash, mirror_diag, mirror_x, mirror_y, Solver};
 
@@ -19,12 +19,12 @@ pub struct DlxSolver {
 
     w: usize,
     h: usize,
-    pieces: Vec<Piece>,
+    pieces: [Piece; NUM_PIECES],
     found_callback: Box<dyn Fn(&[Piece], &[PieceArrange])>,
 }
 
 impl Solver for DlxSolver {
-    fn new(w: usize, h: usize, pieces: Vec<Piece>, bitboard: BitBoard) -> Self {
+    fn new(w: usize, h: usize, pieces: [Piece; NUM_PIECES], bitboard: BitBoard) -> Self {
         let possibilities = Possibility::all(w, h, &pieces, bitboard).collect();
         let constraints = Constraint::all(w, h, bitboard, pieces.len()).collect();
 
@@ -48,7 +48,7 @@ impl Solver for DlxSolver {
         let mut total = 0;
         let mut solution_hashes = HashSet::<String>::new();
         for solution in solver {
-            let mut arranges: Vec<PieceArrange> = vec![PieceArrange::default(); solution.len()];
+            let mut arranges: [PieceArrange; NUM_PIECES] = std::array::from_fn(|_| PieceArrange::default());
             for p in solution {
                 arranges[p.piece] = PieceArrange {x: p.x, y: p.y, shape: p.shape};
             }
@@ -123,7 +123,7 @@ pub struct Possibility {
 }
 
 impl Possibility {
-    pub fn all(w: usize, h: usize, pieces: &Vec<Piece>, bitboard: BitBoard) -> impl Iterator<Item = Self> + '_ {
+    pub fn all(w: usize, h: usize, pieces: &[Piece], bitboard: BitBoard) -> impl Iterator<Item = Self> + '_ {
         pieces.iter().enumerate()
             .flat_map(move |(ip, piece)| piece.shapes.iter().enumerate()
             .flat_map(move |(is, shape)| {
@@ -142,7 +142,7 @@ impl Possibility {
     }
 
     /// Return true if this `Possibility` satisfies the given `Constraint`.
-    pub fn satisfies(&self, constraint: &Constraint, pieces: &Vec<Piece>, board_w: usize) -> bool {
+    pub fn satisfies(&self, constraint: &Constraint, pieces: &[Piece], board_w: usize) -> bool {
         match constraint {
             &Constraint::Cell(x, y) => {
                 if x < self.x || y < self.y { return false; }
