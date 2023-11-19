@@ -59,18 +59,18 @@ impl NaiveSolver {
     fn solve_x(&mut self, ip: usize) {
         // Put X piece first in top left quad.
         let is = 0;
-        let (sw, sh, ofsy) = {
+        let (sw, sh, ofsx) = {
             let shape = &self.pieces[ip].shapes[0];
-            (shape.w, shape.h, shape.ofsy)
+            (shape.w, shape.h, shape.ofsx)
         };
         let saved_bitboard = self.bitboard;
-        for x in 0..=(self.w - sw) / 2 {
-            for y in ofsy..=(self.h - sh) / 2 + ofsy {
+        for y in 0..=(self.h - sh) / 2 {
+            for x in ofsx..=(self.w - sw) / 2 + ofsx {
                 self.check_count += 1;
                 let shape = &self.pieces[ip].shapes[is];
                 if can_put_shape(saved_bitboard, self.w, self.h, shape, x, y) {
-                    self.bitboard = put_shape(saved_bitboard, self.w, self.h, &self.pieces[ip].shapes[is], x, y - shape.ofsy);
-                    self.arranges[ip] = PieceArrange {x, y: y - shape.ofsy, shape: 0};
+                    self.bitboard = put_shape(saved_bitboard, self.w, self.h, shape, x - shape.ofsx, y);
+                    self.arranges[ip] = PieceArrange {x: x - shape.ofsx, y, shape: 0};
                     self.arranged |= 1 << ip;
                     self.solve_recur(0, 0);
                 }
@@ -89,11 +89,11 @@ impl NaiveSolver {
             for is in 0..self.pieces[ip].shapes.len() {
                 let shape = &self.pieces[ip].shapes[is];
                 if can_put_shape(saved_bitboard, self.w, self.h, shape, x, y) {
-                    self.bitboard = put_shape(saved_bitboard, self.w, self.h, shape, x, y - shape.ofsy);
-                    self.arranges[ip] = PieceArrange {x, y: y - shape.ofsy, shape: is};
+                    self.bitboard = put_shape(saved_bitboard, self.w, self.h, shape, x - shape.ofsx, y);
+                    self.arranges[ip] = PieceArrange {x: x - shape.ofsx, y, shape: is};
                     self.arranged |= 1 << ip;
                     if self.arranged != (1 << NUM_PIECES) - 1 {
-                        let (nx, ny) = self.search_next_pos(x, y, self.bitboard);
+                        let (nx, ny) = self.search_next_pos(self.bitboard);
                         self.solve_recur(nx, ny);
                     } else {
                         // All pieces are placed -> check whether this solution is unique.
@@ -139,24 +139,17 @@ impl NaiveSolver {
         }
     }
 
-    fn search_next_pos(&self, mut x: usize, mut y: usize, bitboard: BitBoard) -> (usize, usize) {
-        loop {
-            y += 1;
-            if y >= self.h {
-                y = 0;
-                x += 1;
-            }
-            let index = y * self.w + x;
-            if (bitboard & (1 << index)) == 0 { return (x, y); }
-        }
+    fn search_next_pos(&self, bitboard: BitBoard) -> (usize, usize) {
+        let next = bitboard.trailing_ones() as usize;
+        return (next % self.w, next / self.w);
     }
 }
 
 fn can_put_shape(board: BitBoard, w: usize, h: usize, shape: &Shape, x: usize, y: usize) -> bool {
-    if x > w - shape.w { return false; }
-    let ofsy = shape.ofsy;
-    return y >= ofsy && y <= h + ofsy - shape.h &&
-        (board & (shape.bitpat << ((y - ofsy) * w + x))) == 0;
+    if y > h - shape.h { return false; }
+    let ofsx = shape.ofsx;
+    return x >= ofsx && x <= w + ofsx - shape.w &&
+        (board & (shape.bitpat << (y * w + x - ofsx))) == 0;
 }
 
 fn put_shape(board: BitBoard, w: usize, _h: usize, shape: &Shape, x: usize, y: usize) -> BitBoard {

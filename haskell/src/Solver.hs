@@ -4,7 +4,7 @@ module Solver
     ) where
 import Control.Monad (forM_)
 import Data.Array.ST (MArray(newArray), runSTArray, writeArray)
-import Data.Bits (shiftL, Bits ((.&.), (.|.)))
+import Data.Bits (countTrailingZeros, shiftL, Bits ((.&.), (.|.)))
 import Data.Either (lefts)
 import Data.Foldable (toList)
 import qualified Data.HashSet as HS
@@ -56,8 +56,8 @@ solveXFirst :: Board -> Piece -> [Piece] -> [[PieceArrange]]
 solveXFirst board@(w, h, _) xp@(_, shapes) pieces = solveRecur xplaced
     where
         xplaced = [(pieces, (0, 0), b, pa) | (_, _, b, pa) <- xnodes]
-        (_, sw, sh, ofsy) = head $ shapes
-        range = [(x, y) | x <- [0..(w - sw) `div` 2], y <- [ofsy..(h - sh) `div` 2 + ofsy]]
+        (_, sw, sh, ofsx) = head $ shapes
+        range = [(x, y) | y <- [0..(h - sh) `div` 2], x <- [ofsx..(w - sw) `div` 2 + ofsx]]
         xnodes = concat $ lefts [expandNode ([xp], pos, board, []) | pos <- range]
 
 solveRecur :: [Node] -> [[PieceArrange]]
@@ -69,7 +69,7 @@ expandNode (pieces, pos@(x, y), board, sols) = Left oneStep
     where
         oneStep = concatMap f $ eachElem pieces
         f (p, ps) = map (g p ps) $ putPiece pos board p
-        g (c, _) ps (s'@(_, _, _, ofsy), b') = (ps, nextPos b' pos, b', (c, (x, y - ofsy), s'): sols)
+        g (c, _) ps (s'@(_, _, _, ofsx), b') = (ps, nextPos b', b', (c, (x - ofsx, y), s'): sols)
 
 putPiece :: Pos -> Board -> Piece -> [(Shape, Board)]
 putPiece pos board (_, shapes) = mapMaybe f shapes
@@ -77,17 +77,16 @@ putPiece pos board (_, shapes) = mapMaybe f shapes
         f shape = (,) shape <$> putShape pos board shape
 
 putShape :: Pos -> Board -> Shape -> Maybe Board
-putShape (x, y) (bw, bh, boardbits) (shapebits, sw, sh, ofsy)
+putShape (x, y) (bw, bh, boardbits) (shapebits, sw, sh, ofsx)
     | inRange && noConflict  = Just (bw, bh, boardbits')
     | otherwise              = Nothing
     where
-        inRange = x + sw <= bw && y - ofsy >= 0 && y - ofsy + sh <= bh
-        noConflict = (boardbits .&. (shapebits `shiftL` ((y - ofsy) * bw + x))) == 0
-        boardbits' = boardbits .|. (shapebits `shiftL` ((y - ofsy) * bw + x))
+        inRange = y + sh <= bh && x - ofsx >= 0 && x - ofsx + sw <= bw
+        noConflict = (boardbits .&. (shapebits `shiftL` (y * bw + x - ofsx))) == 0
+        boardbits' = boardbits .|. (shapebits `shiftL` (y * bw + x - ofsx))
 
-nextPos :: Board -> Pos -> Pos
-nextPos (bw, bh, bits) = head . dropWhile occupied . iterate next
+nextPos :: Board -> Pos
+nextPos (bw, _, bits) = (index `mod` bw, index `div` bw)
     where
-        next (x, y) | y + 1 < bh  = (x, y + 1)
-                    | otherwise   = (x + 1, 0)
-        occupied (x, y) = x < bw && y < bh && bits .&. (1 `shiftL` (y * bw + x)) /= 0
+        index = countTrailingOnes bits
+        countTrailingOnes = countTrailingZeros . (+ 1)

@@ -13,7 +13,7 @@ use std::time::Instant;
 enum BoardSize { _6x10, _5x12, _4x15, _3x20, _8x8 }
 
 impl BoardSize {
-    fn hwb(&self) -> (usize, usize, BitBoard) {
+    fn whb(&self) -> (usize, usize, BitBoard) {
         match self {
             BoardSize::_6x10 => (6, 10, 0),
             BoardSize::_5x12 => (5, 12, 0),
@@ -72,8 +72,9 @@ fn color_board(w: usize, h: usize, pieces: &[Piece], arranges: &[PieceArrange]) 
 
 fn print_result(w: usize, h: usize, tty: bool, pieces: &[Piece], arranges: &[PieceArrange]) {
     let placed = color_board(w, h, &pieces, &arranges);
-    for y in 0..h {
-        for x in 0..w {
+    // Transpose board to reduce lines.
+    for x in 0..w {
+        for y in 0..h {
             if let Some((name, c)) = placed[y * w + x] {
                 let cs = if tty {
                     let s = String::from(c) + " ";
@@ -107,7 +108,7 @@ fn print_result(w: usize, h: usize, tty: bool, pieces: &[Piece], arranges: &[Pie
 
 fn solve<T: Solver>(args: &Args) {
     let size = args.size.unwrap_or(BoardSize::_6x10);
-    let (h, w, initial_bitboard) = size.hwb();
+    let (w, h, initial_bitboard) = size.whb();
     let pieces = Piece::create_pentominos(w, h);
     let mut solver: T = T::new(w, h, pieces, initial_bitboard);
 

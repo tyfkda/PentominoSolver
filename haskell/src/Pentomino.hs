@@ -8,10 +8,10 @@ import Data.Int (Int64)
 import Data.List (foldl', nub, unfoldr)
 
 type BitBoard = Int64
-type Shape = (BitBoard, Int, Int, Int)  -- bitpat, w, h, ofsy
+type Shape = (BitBoard, Int, Int, Int)  -- bitpat, w, h, ofsx
 
 toShape :: [String] -> Shape
-toShape ss = (bitpat, w, h, ofsy)
+toShape ss = (bitpat, w, h, ofsx)
     where
         bitpat = foldl' f 0 $ concat ss
         f acc c = (acc `shiftL` 1) + tobin c
@@ -19,7 +19,7 @@ toShape ss = (bitpat, w, h, ofsy)
         tobin _   = 1
         h = length ss
         w = length $ head ss
-        ofsy = offsetY bitpat w
+        ofsx = offsetX bitpat
 
 shapeCells :: Shape -> [Int]
 shapeCells (bitpat, _sw, _sh, _) = unfoldr f bitpat
@@ -28,7 +28,7 @@ shapeCells (bitpat, _sw, _sh, _) = unfoldr f bitpat
             | otherwise = Just (countTrailingZeros b, b .&. (b - 1))
 
 toBoardSize :: Int -> Int -> Shape -> Shape
-toBoardSize bw _ (bitpat, sw, sh, ofsy) = (bitpat', sw, sh, ofsy)
+toBoardSize bw _ (bitpat, sw, sh, ofsx) = (bitpat', sw, sh, ofsx)
     where
         bitpat'
             | sw == bw  = bitpat
@@ -48,15 +48,15 @@ toPiece bw bh (name, ss) = (name, shapes)
         flipped_shape = toShape $ reverse ss
 
 rot90 :: Shape -> Shape
-rot90 (bitpat, w, h, _) = (bitpat', h, w, ofsy)
+rot90 (bitpat, w, h, _) = (bitpat', h, w, ofsx)
     where
         bitpat' = foldl' f 0 [(x, y) | x <- [0..w - 1], y <- [0..h - 1]]
         f acc (x, y) = acc .|. (bit2d (w - 1 - x) y `shiftL` (x * h + y))
         bit2d x y = (bitpat `shiftR` (y * w + x)) .&. 1
-        ofsy = offsetY bitpat' h
+        ofsx = offsetX bitpat'
 
-offsetY :: BitBoard -> Int -> Int
-offsetY shapebits sw = head $ filter (\oy -> (shapebits .&. (1 `shiftL` (oy * sw))) /= 0) [0..]
+offsetX :: BitBoard -> Int
+offsetX = countTrailingZeros
 
 createPentominos :: Int -> Int -> [Piece]
 createPentominos bw bh = map (toPiece bw bh) [

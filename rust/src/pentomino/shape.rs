@@ -8,7 +8,7 @@ pub struct Shape {
     pub bitpat: BitBoard,
     pub w: usize,
     pub h: usize,
-    pub ofsy: usize,
+    pub ofsx: usize,
 }
 
 impl Shape {
@@ -140,7 +140,7 @@ impl Shape {
                 bitpat: Self::to_board_width(&rotflipped, board_w),
                 w: rotflipped.w,
                 h: rotflipped.h,
-                ofsy: Self::find_ofsy(rotflipped.bitpat, rotflipped.w, rotflipped.h),
+                ofsx: Self::find_ofsx(rotflipped.bitpat, rotflipped.w, rotflipped.h),
             };
             if shapes.iter().all(|s| *s != modified) {
                 shapes.push(modified)
@@ -174,7 +174,7 @@ impl Shape {
                 }
             }
         }
-        Shape { bitpat, w, h, ofsy: 0 }
+        Shape { bitpat, w, h, ofsx: 0 }
     }
 
     fn rot_flip(base_shape: &Shape, flip: bool, rot: usize) -> Self {
@@ -194,7 +194,7 @@ impl Shape {
         for y in 0..shape.h / 2 {
             bitpat = delta_swap(bitpat, line_mask << (y * shape.w), (shape.h - 1 - 2 * y) * shape.w);
         }
-        Shape { bitpat, w: shape.w, h: shape.h, ofsy: 0 }
+        Shape { bitpat, w: shape.w, h: shape.h, ofsx: 0 }
     }
 
     fn rot90(shape: &Shape) -> Self {
@@ -205,13 +205,13 @@ impl Shape {
                 bitpat |= b << (y * shape.h + x);
             }
         }
-        Shape { bitpat, w: shape.h, h: shape.w, ofsy: 0 }
+        Shape { bitpat, w: shape.h, h: shape.w, ofsx: 0 }
     }
 
-    fn find_ofsy(bitpat: BitBoard, w: usize, h: usize) -> usize {
-        (0..h)
+    fn find_ofsx(bitpat: BitBoard, w: usize, _h: usize) -> usize {
+        (0..w)
             .into_iter()
-            .position(|y| (bitpat & (1 << (y * w))) != 0)
+            .position(|x| (bitpat & (1 << x)) != 0)
             .unwrap()
     }
 }

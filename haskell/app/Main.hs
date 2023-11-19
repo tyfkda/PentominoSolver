@@ -1,7 +1,7 @@
 module Main (main) where
 import Control.Monad (forM_, unless, void)
 import Data.Bits (shiftL, (.|.))
-import Data.List (unfoldr)
+import Data.List (transpose, unfoldr)
 import Data.Time (diffUTCTime, getCurrentTime)
 import Options.Applicative
 import System.Console.ANSI
@@ -57,7 +57,8 @@ choosePrinter False = ( \(c, _) -> putChar c
 
 printSolution :: ((Char, Char) -> IO (), IO ()) -> Int -> Int -> Solution -> IO ()
 printSolution (putc, eol) w _ sol = do
-    let ls = splitByWidth w resultList
+    -- Transpose board to reduce lines.
+    let ls = transpose $ splitByWidth w resultList
     forM_ ls $ \ll -> do
         forM_ ll $ \cc -> do
             putc cc
@@ -104,9 +105,9 @@ main = do
 
 boardSize :: String -> Maybe Board
 boardSize sizeStr
-    | sizeStr == "6x10" || sizeStr == "6" || sizeStr == "10x6"  = Just (10, 6, 0)
-    | sizeStr == "5x12" || sizeStr == "5" || sizeStr == "12x5"  = Just (12, 5, 0)
-    | sizeStr == "4x15" || sizeStr == "4" || sizeStr == "15x4"  = Just (15, 4, 0)
-    | sizeStr == "3x20" || sizeStr == "3" || sizeStr == "20x3"  = Just (20, 3, 0)
+    | sizeStr == "6x10" || sizeStr == "6" || sizeStr == "10x6"  = Just (6, 10, 0)
+    | sizeStr == "5x12" || sizeStr == "5" || sizeStr == "12x5"  = Just (5, 12, 0)
+    | sizeStr == "4x15" || sizeStr == "4" || sizeStr == "15x4"  = Just (4, 15, 0)
+    | sizeStr == "3x20" || sizeStr == "3" || sizeStr == "20x3"  = Just (3, 20, 0)
     | sizeStr == "8x8"  || sizeStr == "8"  = Just ( 8, 8, (3 `shiftL` (3 * 8 + 3)) .|. (3 `shiftL` (4 * 8 + 3)))
     | otherwise                            = Nothing
