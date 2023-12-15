@@ -46,12 +46,102 @@ struct Args {
     #[arg(long)]
     dlx: bool,
 
+    /// Print as figure
+    #[arg(long)]
+    figure: bool,
+
     /// Suppress solution output
     #[arg(short, long)]
     quiet: bool,
 }
 
-fn color_board(w: usize, h: usize, pieces: &[Piece], arranges: &[PieceArrange]) -> Vec<Option<(char, char)>> {
+const GRID_CHARS: [char; 16] = [
+    ' ', ' ', ' ', '━',
+    ' ', '┏', '┓', '┳',
+    ' ', '┗', '┛', '┻',
+    '┃', '┣', '┫', '╋'];
+
+fn print_result_figure(w: usize, h: usize, pieces: &[Piece], arranges: &[PieceArrange]) {
+    let w2 = w + 1;
+    let h2 = h * 2 + 1;
+
+    let mut placed = {
+        let place_piece = |mut placed: Vec<char>, (piece, arrange): (&Piece, &PieceArrange)| -> Vec<char> {
+            // let base_index = arrange.y * w + arrange.x;
+            let shape = &piece.shapes[arrange.shape];
+            let c = piece.name;
+            let mut bitpat = shape.bitpat;
+            while bitpat != 0 {
+                let ofs = bitpat.trailing_zeros() as usize;
+                let xofs = ofs % w;
+                let yofs = ofs / w;
+                placed[((arrange.y + yofs) * 2 + 1) * w2 + (arrange.x + xofs + 1)] = c;
+                bitpat = bitpat & (bitpat - 1);  // Remove lowest bit.
+            }
+            placed
+        };
+
+        let placed = vec!['.'; w2 * h2];
+        pieces.iter().zip(arranges).fold(placed, place_piece)
+    };
+
+    let hlines: Vec<Vec<bool>> = (0..h).map(|y| {
+        (0..(w + 1)).map(|x| {
+            let c1 = if x > 0 { placed[(y * 2 + 1) * w2 +  x     ] } else { ' ' };
+            let c2 = if x < w { placed[(y * 2 + 1) * w2 + (x + 1)] } else { ' ' };
+            c1 != c2
+        }).collect()
+    }).collect();
+
+    let vlines: Vec<Vec<bool>> = (0..(h + 1)).map(|y| {
+        (0..w).map(|x| {
+            let c1 = if y > 0 { placed[(y * 2 - 1) * w2 + (x + 1)] } else { ' ' };
+            let c2 = if y < h { placed[(y * 2 + 1) * w2 + (x + 1)] } else { ' ' };
+            c1 != c2
+        }).collect()
+    }).collect();
+
+    // Put grid lines.
+    for x in 0..(w + 1) {
+        for y in 0..(h + 1) {
+            let mut i = 0usize;
+            if y < h && hlines[y    ][x] { i |= 1; }
+            if y > 0 && hlines[y - 1][x] { i |= 2; }
+            if x < w && vlines[y][x    ] { i |= 4; }
+            if x > 0 && vlines[y][x - 1] { i |= 8; }
+            placed[(y * 2) * w2 + x] = GRID_CHARS[i];
+        }
+    }
+    for x in 0..(w + 1) {
+        for y in 0..h {
+            if hlines[y][x] {
+                placed[(y * 2 + 1) * w2 + x] = GRID_CHARS[3];
+            }
+        }
+    }
+
+    // Transpose board to reduce lines.
+    let mut letter_appeared = [false; 26];
+    for x in 0..w2 {
+        for y in 0..h2 {
+            let i = y * w2 + x;
+            let mut c = placed[i];
+            if 'A' <= c && c <= 'Z' {
+                let l = (c as usize) - ('A' as usize);
+                if !letter_appeared[l] {
+                    letter_appeared[l] = true;
+                } else {
+                    c = ' ';
+                }
+            }
+            print!("{:}", c);
+        }
+        println!("");
+    }
+    println!("");
+}
+
+fn arrange_board(w: usize, h: usize, pieces: &[Piece], arranges: &[PieceArrange]) -> Vec<Option<(char, char)>> {
     let place_piece = |mut placed: Vec<Option<(char, char)>>, (piece, arrange): (&Piece, &PieceArrange)| -> Vec<Option<(char, char)>> {
         let base_index = arrange.y * w + arrange.x;
         let shape = &piece.shapes[arrange.shape];
@@ -70,13 +160,13 @@ fn color_board(w: usize, h: usize, pieces: &[Piece], arranges: &[PieceArrange]) 
     pieces.iter().zip(arranges).fold(placed, place_piece)
 }
 
-fn print_result(w: usize, h: usize, tty: bool, pieces: &[Piece], arranges: &[PieceArrange]) {
-    let placed = color_board(w, h, &pieces, &arranges);
+fn print_result_color(w: usize, h: usize, pieces: &[Piece], arranges: &[PieceArrange]) {
+    let placed = arrange_board(w, h, &pieces, &arranges);
     // Transpose board to reduce lines.
     for x in 0..w {
         for y in 0..h {
             if let Some((name, c)) = placed[y * w + x] {
-                let cs = if tty {
+                let cs = {
                     let s = String::from(c) + " ";
                     match name {
                         'F' => s.on_bright_red(),
@@ -92,13 +182,10 @@ fn print_result(w: usize, h: usize, tty: bool, pieces: &[Piece], arranges: &[Pie
                         'Y' => s.on_green().bright_white(),
                         _ => s.on_cyan().bright_white(),
                     }
-                } else {
-                    String::from(name).normal()
                 };
                 print!("{cs}");
             } else {
-                let c = if tty { ". " } else { "." };
-                print!("{c}");
+                print!(". ");
             }
         }
         println!("");
@@ -113,9 +200,13 @@ fn solve<T: Solver>(args: &Args) {
     let mut solver: T = T::new(w, h, pieces, initial_bitboard);
 
     if !args.quiet {
-        let tty = atty::is(Stream::Stdout);
+        let disp_color = !args.figure && atty::is(Stream::Stdout);
         let f = move |pieces: &[Piece], arranges: &[PieceArrange]| {
-            print_result(w, h, tty, pieces, arranges);
+            if disp_color {
+                print_result_color(w, h, pieces, arranges);
+            } else {
+                print_result_figure(w, h, pieces, arranges);
+            }
         };
         solver.set_callback(Box::new(f));
     }

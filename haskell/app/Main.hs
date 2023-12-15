@@ -1,7 +1,9 @@
 module Main (main) where
-import Control.Monad (forM_, unless, void)
+import Control.Monad (forM_, unless)
+import Data.Array (Array, array, (!))
 import Data.Bits (shiftL, (.|.))
-import Data.List (transpose, unfoldr)
+import Data.Char (isAlpha)
+import Data.List (scanl', transpose, unfoldr)
 import Data.Time (diffUTCTime, getCurrentTime)
 import Options.Applicative
 import System.Console.ANSI
@@ -15,6 +17,44 @@ import Solver (Board, Solution, solve)
 import Util (splitByWidth)
 
 type ColorPair = (ColorIntensity, Color)
+
+gridChars :: Array Int Char
+gridChars = array (0, 15) [
+    (3, '━'), (5, '┏'), (6, '┓'), (7, '┳'),
+    (9, '┗'), (10, '┛'), (11, '┻'),
+    (12, '┃'), (13, '┣'), (14, '┫'), (15, '╋'),
+    (0, ' ')]  --, (1, ' '), (2, ' '), (4, ' '), (8, ' ')]
+
+printSolutionFigure :: Int -> Int -> [Solution] -> IO ()
+printSolutionFigure w h result = do
+    forM_ result $ \sol -> do
+        printSolution sol
+    where
+        printSolution sol = do
+            forM_ scannedGrid $ \line -> do
+                putStrLn line
+            putStrLn ""
+            where
+                scannedGrid = fst $ scann (flip scanLine) ("", []) grid2
+                scanLine ls = scann elimDupAlpha (' ', ls)
+                elimDupAlpha c ls | c `elem` ls  = (' ', ls)
+                                  | otherwise    = (c, if isAlpha c then c : ls else ls)
+                scann f ini line = (map fst res, snd $ last res)
+                    where res = tail $ scanl' (\(_c, ls) c -> f c ls) ini line
+
+                placedTranspose = splitByWidth w sol
+                placed = transpose placedTranspose
+                hlines = zipWith (zipWith diff) placed (tail placed)
+                vlines = transpose $ zipWith (zipWith diff) placedTranspose (tail placedTranspose)
+                hlines2' = (replicate h 1 : hlines) ++ [replicate h 1]
+                hlines2 = map (\hh -> zipWith (\h1 h2 -> h1 * 2 + h2) (0: hh) (hh ++ [0])) hlines2'
+                vlines2' = map (\vv -> (1 : vv) ++ [1]) vlines
+                vlines2 = zipWith (zipWith (\v1 v2 -> v1 * 2 + v2)) (replicate (h + 1) 0 : vlines2') (vlines2' ++ [replicate (h + 1) 0])
+                grid = zipWith (zipWith (\ih iv -> ih + iv * 4)) hlines2 vlines2
+                grid2 = zipWith3 (\l1 l2 l3 -> concat $ transpose [map (gridChars !) l1, zipWith (\i c -> if i /= 0 then gridChars ! (i * 3) else c) l2 l3]) grid hlines2' (replicate h ' ' : placed)
+        diff a b | a == b  = 0
+                 | otherwise = 1
+
 
 resetColor :: IO ()
 resetColor = do
@@ -49,42 +89,39 @@ chooseColor 'Y' = (vividWhite, (Dull, Green))
 chooseColor 'Z' = (vividWhite, (Dull, Cyan))
 chooseColor _   = (dullBlack, vividWhite)
 
-choosePrinter :: Bool -> ((Char, Char) -> IO (), IO ())
-choosePrinter True  = ( \(c, c') -> colorStr (chooseColor c) [c', ' ']
-                      , void resetColor )
-choosePrinter False = ( \(c, _) -> putChar c
-                      , return () )
+printSolutionColor :: Int -> Int -> [Solution] -> IO ()
+printSolutionColor w _ result = do
+    forM_ result $ \sol -> do
+        -- Transpose board to reduce lines.
+        let ls = transpose $ splitByWidth w $ resultList sol
+        forM_ ls $ \ll -> do
+            forM_ ll $ \(c, c') -> do
+                colorStr (chooseColor c) [c', ' ']
+            resetColor >> putStrLn ""
+        putStrLn ""
+        where
+            resultList sol = unfoldr f (sol, "")
+            f (c:cs, used) | c `elem` used = Just ((c, ' '), (cs, used))
+                        | otherwise     = Just ((c, c),   (cs, c:used))
+            f ([], _)      = Nothing
 
-printSolution :: ((Char, Char) -> IO (), IO ()) -> Int -> Int -> Solution -> IO ()
-printSolution (putc, eol) w _ sol = do
-    -- Transpose board to reduce lines.
-    let ls = transpose $ splitByWidth w resultList
-    forM_ ls $ \ll -> do
-        forM_ ll $ \cc -> do
-            putc cc
-        eol >> putStrLn ""
-    where
-        resultList = unfoldr f (sol, "")
-        f (c:cs, used) | c `elem` used = Just ((c, ' '), (cs, used))
-                       | otherwise     = Just ((c, c),   (cs, c:used))
-        f ([], _)      = Nothing
-
-solvePentomino :: Board -> Bool -> IO ()
-solvePentomino board@(w, h, _) isQuiet = do
+solvePentomino :: Board -> (Bool, Bool) -> IO ()
+solvePentomino board@(w, h, _) (isQuiet, isFigure) = do
     start <- getCurrentTime
     let result = solve board $ createPentominos w h
     unless isQuiet $ do
         istty <- queryTerminal stdOutput
-        let printer = choosePrinter istty
-        forM_ result $ \sol -> do
-            printSolution printer w h sol
-            putStrLn ""
+        printSolution (not isFigure && istty) w h result
     print $ length result
     stop <- getCurrentTime
     putStrLn $ "Elapsed: " ++ show (diffUTCTime stop start)
+    where
+        printSolution False = printSolutionFigure
+        printSolution True  = printSolutionColor
 
 data Argument = Argument
     { size :: String
+    , figure :: Bool
     , quiet :: Bool
     } deriving (Read, Show)
 
@@ -92,7 +129,7 @@ main :: IO ()
 main = do
     args <- execParser parserInfo
     case boardSize $ size args of
-        Just sz -> solvePentomino sz (quiet args)
+        Just board -> solvePentomino board (quiet args, figure args)
         Nothing -> do
             hPutStrLn stderr $ "Illegal size: " ++ size args
             exitFailure
@@ -100,6 +137,7 @@ main = do
         parserInfo = argumentParser `withInfo` "Pentomino Solver"
         argumentParser = Argument
             <$> strOption (short 's' <> long "size" <> value "6x10" <> help "Board size (6x10, 5x12, 4x15, 3x20, 8x8)")
+            <*> switch (long "figure" <> help "Print as figure")
             <*> switch (short 'q' <> long "quiet" <> help "Suppress solution output")
         withInfo p = info (p <**> helper) . progDesc
 

@@ -15,9 +15,6 @@ copyright:      2023 Author name here
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
-extra-source-files:
-    README.md
-    CHANGELOG.md
 
 source-repository head
   type: git
@@ -48,6 +45,7 @@ executable pentomino-solver-exe
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       ansi-terminal
+    , array
     , base >=4.7 && <5
     , optparse-applicative
     , pentomino-solver
