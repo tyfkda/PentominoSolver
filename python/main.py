@@ -1,11 +1,24 @@
+import argparse
+
 from piece import create_pieces
 import pulp_solver
+import z3_solver
 
 def main():
+    parser = argparse.ArgumentParser(prog='Pentomino Solver')
+    parser.add_argument('--solver', choices=['pulp', 'z3'], default='pulp')
+    args = parser.parse_args()
+    # print(args)
+    # # return
+
+
     # (board_w, board_h) = (10, 6)
     (board_w, board_h) = (20, 3)
     pieces = create_pieces(board_w, board_h)
-    solver = pulp_solver.PulpSolver(board_w, board_h, pieces)
+    if args.solver == 'z3':
+        solver = z3_solver.Z3Solver(board_w, board_h, pieces)
+    else:
+        solver = pulp_solver.PulpSolver(board_w, board_h, pieces)
 
     total = 0
     for result in solver.solve():
