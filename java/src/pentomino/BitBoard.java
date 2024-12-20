@@ -8,4 +8,12 @@ public class BitBoard {
         long t = ((x >> delta) ^ x) & mask;
         return t ^ (t << delta) ^ x;
     }
+
+    public static int trailingZeros(long x) {
+        return Long.numberOfTrailingZeros(x);
+    }
+
+    public static int trailingOnes(long x) {
+        return Long.numberOfTrailingZeros(x + 1);
+    }
 }
