@@ -7,15 +7,24 @@
 
 ```sh
 $ cd rust
-$ time cargo run --release -- --size=6
-$ time cargo run --release -- --dlx --size=6
+$ cargo run --release -- --size=6
+$ cargo run --release -- --dlx --size=6
 ```
 
 #### Haskell
 
 ```sh
 $ cd haskell
-$ time stack run -- --size=6
+$ stack run -- --size=6
+```
+
+#### Java
+
+```sh
+$ cd java
+$ make
+$ make run
+$ java -cp dist PentominoSolver -s 8 --figure
 ```
 
 
@@ -23,9 +32,10 @@ $ time stack run -- --size=6
 
 | 実装方法 | 実行速度(秒) |
 |:--------|-----------:|
-| Rust (naive) | 0.29 |
-| Haskell      | 1.32 |
-| Rust (DLX)   | 4.27 |
+| Rust (naive) | 0.175 |
+| Java         | 0.242 |
+| Haskell      | 0.848 |
+| Rust (DLX)   | 4.089 |
 
 
 ### 図形表示
