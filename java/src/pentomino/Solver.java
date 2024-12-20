@@ -24,11 +24,11 @@ public class Solver {
     public long solutionCount = 0;
     private HashSet<String> solutionHashes;
 
-    public Solver(int w, int h, Piece[] pieces, long initialBoard) {
+    public Solver(BoardConfig boardConfig, Piece[] pieces) {
         this.pieces = pieces;
-        this.w = w;
-        this.h = h;
-        this.bitboard = initialBoard;
+        this.w = boardConfig.width;
+        this.h = boardConfig.height;
+        this.bitboard = boardConfig.initialBoard;
         this.foundCallback = null;
 
         this.arranges = IntStream.range(0, pieces.length)
