@@ -19,21 +19,26 @@ public class PentominoSolver {
         Piece[] pieces = Piece.createShapes(boardW, boardH);
 
         Solver solver = new Solver(args.boardConfig, pieces);
-        Solver.Callback callback;
-        if (args.figure)
-            callback = new PrintResultFigure(pieces, args.boardConfig);
-        else
-            callback = new PrintResultColor(pieces, args.boardConfig);
+        if (!args.quiet) {
+            Solver.Callback callback;
+            if (args.figure)
+                callback = new PrintResultFigure(pieces, args.boardConfig);
+            else
+                callback = new PrintResultColor(pieces, args.boardConfig);
+            solver.setCallback(callback);
+        }
 
-        solver.setCallback(callback);
+        long startTime = System.nanoTime();
         solver.solve();
+        long elapsed = System.nanoTime() - startTime;
 
-        System.out.printf("Total: Solution=%d, check=%d\n", solver.solutionCount, solver.checkCount);
+        System.out.printf("Total: Solution=%d, check=%d, elapsed=%fms\n", solver.solutionCount, solver.checkCount, elapsed / 1000000.0);
     }
 
     private static Args parseArgs(String[] args) {
         BoardConfig boardConfig = BoardConfig._6x10;
         boolean figure = false;
+        boolean quiet = false;
         int i;
         for (i = 0; i < args.length; ++i) {
             if ((args[i].equals("-s") || args[i].equals("--size")) && i + 1 < args.length) {
@@ -54,6 +59,9 @@ public class PentominoSolver {
                 figure = true;
                 continue;
             }
+            if (args[i].equals("-q") || args[i].equals("--quiet")) {
+                quiet = true; continue;
+            }
 
             break;
         }
@@ -67,7 +75,7 @@ public class PentominoSolver {
             return null;
         }
 
-        return new Args(boardConfig, figure);
+        return new Args(boardConfig, figure, quiet);
     }
 }
 
@@ -225,9 +233,11 @@ class PrintResultFigure implements Solver.Callback {
 class Args {
     final BoardConfig boardConfig;
     final boolean figure;
+    final boolean quiet;
 
-    public Args(BoardConfig boardConfig, boolean figure) {
+    public Args(BoardConfig boardConfig, boolean figure, boolean quiet) {
         this.boardConfig = boardConfig;
         this.figure = figure;
+        this.quiet = quiet;
     }
 }
