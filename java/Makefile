@@ -1,10 +1,18 @@
 
-.PHONY: all
-all:	Main.class
+SRCDIR:=src
+DISTDIR:=dist
 
-Main.class:	Main.java
-	javac $<
+.PHONY: all
+all:	$(DISTDIR)/PentominoSolver.class
+
+.PHONY: $(DISTDIR)/PentominoSolver.class
+$(DISTDIR)/PentominoSolver.class:
+	javac -sourcepath $(SRCDIR) -d $(DISTDIR) -Xlint $(SRCDIR)/PentominoSolver.java
+
+.PHONY: clean
+clean:
+	rm -rf $(DISTDIR)
 
 .PHONY: run
-run:	Main.class
-	@java Main
+run:
+	@java -cp $(DISTDIR) PentominoSolver
