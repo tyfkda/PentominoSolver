@@ -2,6 +2,7 @@ package pentomino;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.IntStream;
 
 import pentomino.component.Piece;
@@ -22,7 +23,7 @@ public class Solver {
     private int arranged = 0;
     public long checkCount = 0;
     public long solutionCount = 0;
-    private HashSet<String> solutionHashes;
+    private Set<String> solutionHashes;
 
     public Solver(BoardConfig boardConfig, Piece[] pieces) {
         this.pieces = pieces;

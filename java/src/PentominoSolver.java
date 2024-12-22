@@ -1,5 +1,6 @@
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Set;
 
 import pentomino.BoardConfig;
 import pentomino.PieceArrange;
@@ -92,7 +93,7 @@ class PrintResultColor implements Solver.Callback {
         int boardW = boardConfig.width;
         int boardH = boardConfig.height;
         char[] placed = Solver.placedBoard(boardW, boardH, pieces, arranges);
-        HashSet<Character> m = new HashSet<Character>();
+        Set<Character> m = new HashSet<Character>();
         for (int j = 0; j < boardW; ++j) {
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < boardH; ++i) {
