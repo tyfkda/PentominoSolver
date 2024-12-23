@@ -38,7 +38,7 @@ public class Shape {
     static Shape[] createFromOriginal(OriginalShape os, int boardW, int boardH) {
         Shape baseShape = createBase(os, boardW, boardH);
 
-        List<Shape> shapes = new ArrayList<Shape>();
+        List<Shape> shapes = new ArrayList<>();
         for (int i = 0; i < 8; ++i) {
                 Shape rotflipped = rotFlip(baseShape, i >= 4, i & 3);
             if (rotflipped.w > boardW || rotflipped.h > boardH)

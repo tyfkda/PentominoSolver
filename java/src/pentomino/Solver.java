@@ -45,7 +45,7 @@ public class Solver {
         checkCount = 0;
         arranged = 0;
         solutionCount = 0;
-        solutionHashes = new HashSet<String>();
+        solutionHashes = new HashSet<>();
 
         int ip = -1;
         for (int i = 0; i < pieces.length; ++i) {

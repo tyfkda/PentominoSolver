@@ -93,7 +93,7 @@ class PrintResultColor implements Solver.Callback {
         int boardW = boardConfig.width;
         int boardH = boardConfig.height;
         char[] placed = Solver.placedBoard(boardW, boardH, pieces, arranges);
-        Set<Character> m = new HashSet<Character>();
+        Set<Character> m = new HashSet<>();
         for (int j = 0; j < boardW; ++j) {
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < boardH; ++i) {
@@ -208,17 +208,15 @@ class PrintResultFigure implements Solver.Callback {
         }
 
         // Transpose board to reduce lines.
-        boolean[] letter_appeared = new boolean[26];
-        Arrays.fill(letter_appeared, false);
+        Set<Character> letterAppeared = new HashSet<>();
         for (int x = 0; x < w2; ++x) {
             StringBuilder sb = new StringBuilder();
             for (int y = 0; y < h2; ++y) {
                 int i = y * w2 + x;
                 char c = placed[i];
                 if ('A' <= c && c <= 'Z') {
-                    int l = (int)c - (int)'A';
-                    if (!letter_appeared[l]) {
-                        letter_appeared[l] = true;
+                    if (!letterAppeared.contains(c)) {
+                        letterAppeared.add(c);
                     } else {
                         c = ' ';
                     }
